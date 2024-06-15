@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Duplicati.BackupExplorer.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Duplicati.BackupExplorer.UI.Views.MainView"
+             x:DataType="vm:MainViewModel">
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <vm:MainViewModel />
+  </Design.DataContext>
+
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top">
+      <Label>Database:</Label>
+      <TextBox Text="{Binding ProjectFilename}"></TextBox>
+      <Button Command="{Binding LoadProject}">Load</Button>
+    </StackPanel>
+    
+    <ListBox DockPanel.Dock="Left" ItemsSource="{Binding Backups}" SelectionMode="Multiple" SelectedItems="{Binding SelectedBackups}" Name="ListBoxBackups">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding ID}" />
+            <TextBlock Text="{Binding Timestamp}" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <StackPanel  DockPanel.Dock="Bottom">
+      <Rectangle Fill="Green" Height="100"/>
+      <Button Command="{Binding Compare}">Compare</Button>
+
+    </StackPanel>
+    <Rectangle Fill="Orange" Width="100" DockPanel.Dock="Right" Opacity="0.5"/>
+  </DockPanel>
+</UserControl>
