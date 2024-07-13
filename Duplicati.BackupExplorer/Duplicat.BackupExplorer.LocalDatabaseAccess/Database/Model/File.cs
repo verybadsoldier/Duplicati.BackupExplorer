@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Duplicati.BackupExplorer.LocalDatabaseAccess
+namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model
 {
     public class File
     {
@@ -17,5 +17,10 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
         public long BlocksetId { get; set; }
 
         public long MetadataId { get; set; }
+
+        public override string ToString()
+        {
+            return Prefix + Path;
+        }
     }
 }

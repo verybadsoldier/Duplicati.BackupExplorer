@@ -16,24 +16,40 @@
     <StackPanel DockPanel.Dock="Top">
       <Label>Database:</Label>
       <TextBox Text="{Binding ProjectFilename}"></TextBox>
-      <Button Command="{Binding LoadProject}">Load</Button>
+      <Button Command="{Binding Browse}">Browse</Button>
+      <Button Command="{Binding LoadProject}" Content="{Binding LoadButtonLabel}" IsEnabled="{Binding LoadButtonEnabled}" />
     </StackPanel>
     
     <ListBox DockPanel.Dock="Left" ItemsSource="{Binding Backups}" SelectionMode="Multiple" SelectedItems="{Binding SelectedBackups}" Name="ListBoxBackups">
       <ListBox.ItemTemplate>
         <DataTemplate>
           <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{Binding ID}" />
-            <TextBlock Text="{Binding Timestamp}" />
+            <TextBlock Text="{Binding Fileset}" />
           </StackPanel>
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
     <StackPanel  DockPanel.Dock="Bottom">
-      <Rectangle Fill="Green" Height="100"/>
+    <ProgressBar  Margin="0 10" Height="35"
+                Minimum="0" Maximum="100" Value="{Binding Progress}" ProgressTextFormat="{Binding ProgressTextFormat}"
+                Foreground="Green"
+                ShowProgressText="True" IsVisible="{Binding ProgressVisible}"/>
       <Button Command="{Binding Compare}">Compare</Button>
+      <Button Command="{Binding CompareUnique}">Compare Unique</Button>
 
     </StackPanel>
-    <Rectangle Fill="Orange" Width="100" DockPanel.Dock="Right" Opacity="0.5"/>
+    <TreeView ItemsSource="{Binding FileTree.Root.Children}">
+      <TreeView.ItemTemplate>
+        <TreeDataTemplate ItemsSource="{Binding Children}">
+          <TextBlock Text="{Binding Name}"/>
+        </TreeDataTemplate>
+      </TreeView.ItemTemplate>
+      <TreeView.ContextMenu>
+        <ContextMenu>
+          <MenuItem Header="Copy"/>
+          <MenuItem Header="Paste"/>
+        </ContextMenu>
+      </TreeView.ContextMenu>
+    </TreeView>
   </DockPanel>
 </UserControl>

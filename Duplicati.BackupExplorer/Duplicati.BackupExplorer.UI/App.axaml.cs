@@ -1,10 +1,13 @@
 ﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Duplicati.BackupExplorer.LocalDatabaseAccess;
+using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.UI.ViewModels;
 using Duplicati.BackupExplorer.UI.Views;
+using System;
 
 namespace Duplicati.BackupExplorer.UI;
 
@@ -26,17 +29,23 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainViewModel(db, comparer)
-            };
+            desktop.MainWindow = new MainWindow();
+
+            var storageProvider = ((TopLevel)desktop.MainWindow).StorageProvider;
+
+            if (desktop.MainWindow?.StorageProvider is not { } provider)
+                throw new NullReferenceException("Missing StorageProvider instance.");
+
+            //((MainViewModel)desktop.MainWindow.DataContext).SetProvider(provider);
+            desktop.MainWindow.DataContext = new MainViewModel(db, comparer, provider);
+
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
-            singleViewPlatform.MainView = new MainView
-            {
-                DataContext = new MainViewModel(db, comparer)
-            };
+            var wnd = new MainView();
+            singleViewPlatform.MainView = wnd;
+
+            wnd.DataContext = new MainViewModel(db, comparer, TopLevel.GetTopLevel(wnd).StorageProvider);
         }
 
         base.OnFrameworkInitializationCompleted();

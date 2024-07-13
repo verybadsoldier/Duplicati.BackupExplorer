@@ -11,6 +11,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Duplicati.BackupExplorer.UI
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Duplicati.BackupExplorer.UI.Desktop", "Duplicati.BackupExplorer.UI.Desktop\Duplicati.BackupExplorer.UI.Desktop.csproj", "{8E46066A-D11D-4C01-B070-0FF11EB5CCA3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C4E09712-9379-4337-9503-2DB5D087AA28}"
+	ProjectSection(SolutionItems) = preProject
+		use_cases.md = use_cases.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Duplicati.BackupExplorer.LocalDatabaseAccess.Test", "Duplicati.BackupExplorer.LocalDatabaseAccess.Test\Duplicati.BackupExplorer.LocalDatabaseAccess.Test.csproj", "{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncContetTest", "SyncContetTest\SyncContetTest.csproj", "{0020FBD7-F14A-441E-9040-D6E022E6C9AF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +42,14 @@ Global
 		{8E46066A-D11D-4C01-B070-0FF11EB5CCA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E46066A-D11D-4C01-B070-0FF11EB5CCA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E46066A-D11D-4C01-B070-0FF11EB5CCA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

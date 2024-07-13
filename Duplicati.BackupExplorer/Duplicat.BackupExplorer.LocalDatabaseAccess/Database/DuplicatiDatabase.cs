@@ -1,4 +1,4 @@
-﻿namespace Duplicati.BackupExplorer.LocalDatabaseAccess
+﻿namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database
 {
     using System;
     using System.Collections.Generic;
@@ -15,6 +15,8 @@
     using FilesetID = long;
     using PathPrefixID = long;
     using static System.Net.WebRequestMethods;
+    using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
+    using File = Model.File;
 
     public class DuplicatiDatabase : IDisposable
     {
@@ -27,7 +29,7 @@
         public DuplicatiDatabase()
         { }
 
-        public void Open(string filepath) 
+        public void Open(string filepath)
         {
             _filepath = filepath;
             if (!System.IO.File.Exists(_filepath))
@@ -36,8 +38,30 @@
                 Environment.Exit(1);
             }
 
-            _conn = new SqliteConnection($"Data Source={_filepath}");
-            _conn.Open();
+            _conn = OpenInMemory(_filepath);
+
+            //_conn = new SqliteConnection($"Data Source={_filepath}");
+            //_conn.Open();
+        }
+
+        private SqliteConnection OpenInMemory(string filePath)
+        {
+            string inMemoryConnectionString = "Data Source=:memory:;";
+
+            // Open the file-based database connection
+            using (var fileConnection = new SqliteConnection($"Data Source={filePath};Mode=ReadOnly;"))
+            {
+                fileConnection.Open();
+
+                // Create an in-memory database connection
+                var memoryConnection = new SqliteConnection(inMemoryConnectionString);
+                memoryConnection.Open();
+
+                // Backup the file-based database to the in-memory database
+                fileConnection.BackupDatabase(memoryConnection);//, "main", "main", -1, null, 0);
+
+                return memoryConnection;
+            }
         }
 
         public List<Tuple<string, string>> GetFileVersionsAi(string filename)
@@ -196,13 +220,13 @@
             using var reader = cmd.ExecuteReader();
             reader.Read();
             return new Fileset
-                {
-                    Id = reader.GetInt64(0),
-                    OperationId = reader.GetInt64(1),
-                    VolumeId = reader.GetInt64(2),
-                    IsFullBackup = reader.GetBoolean(3),
-                    Timestamp = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(4)),
-                };
+            {
+                Id = reader.GetInt64(0),
+                OperationId = reader.GetInt64(1),
+                VolumeId = reader.GetInt64(2),
+                IsFullBackup = reader.GetBoolean(3),
+                Timestamp = DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(4)),
+            };
         }
 
         public Fileset GetFilesetForOperation(OperationID operationId)
@@ -249,6 +273,11 @@
         }
 
         public List<Fileset> GetFilesets()
+        {
+            return GetFilesetsRaw();
+        }
+
+        private List<Fileset> GetFilesetsRaw()
         {
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
@@ -318,6 +347,30 @@
 
         public IEnumerable<File> GetFilesByIds(IEnumerable<long> fileIds)
         {
+            foreach (var fileId in fileIds)
+            {
+                using var cmd = _conn.CreateCommand();
+                cmd.CommandText = @"
+                SELECT
+                    F.ID, F.BlocksetID, Path, pp.Prefix, MetadataID
+                FROM 
+                    FileLookup F
+                LEFT JOIN
+	                PathPrefix pp ON pp.ID = F.PrefixID 
+                WHERE 
+                    F.ID = @fileId";
+                cmd.Parameters.AddWithValue("@fileId", fileId);
+
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    yield return new File { Id = reader.GetInt64(0), BlocksetId = reader.GetInt32(1), Path = reader.GetString(2), Prefix = reader.GetString(3), MetadataId = reader.GetInt64(4) };
+                }
+            }
+        }
+
+        public IEnumerable<File> GetFilesByIds2(IEnumerable<long> fileIds)
+        {
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
                 SELECT
@@ -331,10 +384,33 @@
             cmd.AddArrayParameters("fileIds", fileIds);
 
             using var reader = cmd.ExecuteReader();
-            while(reader.Read())
+            while (reader.Read())
             {
                 yield return new File { Id = reader.GetInt64(0), BlocksetId = reader.GetInt32(1), Path = reader.GetString(2), Prefix = reader.GetString(3), MetadataId = reader.GetInt64(4) };
             }
+        }
+
+        public List<File> GetFilesByIds3(IEnumerable<long> fileIds)
+        {
+            using var cmd = _conn.CreateCommand();
+            cmd.CommandText = @"
+                SELECT
+                    F.ID, F.BlocksetID, Path, pp.Prefix, MetadataID
+                FROM 
+                    FileLookup F
+                LEFT JOIN
+	                PathPrefix pp ON pp.ID = F.PrefixID 
+                WHERE 
+                    F.ID IN ({fileIds})";
+            cmd.AddArrayParameters("fileIds", fileIds);
+
+            var files = new List<File>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                files.Add(new File { Id = reader.GetInt64(0), BlocksetId = reader.GetInt32(1), Path = reader.GetString(2), Prefix = reader.GetString(3), MetadataId = reader.GetInt64(4) });
+            }
+            return files;
         }
 
         public List<Tuple<int, int, string, string>> GetFilesByPath(string prefix, string filename)
@@ -354,13 +430,14 @@
 
             var result = new List<Tuple<int, int, string, string>>();
             using var reader = cmd.ExecuteReader();
-            while (reader.Read()) {
+            while (reader.Read())
+            {
                 result.Add(Tuple.Create(reader.GetInt32(0), reader.GetInt32(1), reader.GetString(2), reader.GetString(3)));
             }
             return result;
         }
 
-        public Block GetBlock(BlockID blockId)
+        async public Task<Block> GetBlock(BlockID blockId)
         {
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
@@ -373,29 +450,42 @@
             cmd.Parameters.AddWithValue("@blockid", blockId);
 
             var result = new List<Tuple<SizeBytes, VolumeID>>();
-            using var reader = cmd.ExecuteReader();
-            reader.Read();
+            using var reader = await cmd.ExecuteReaderAsync();
+            await reader.ReadAsync();
             return new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) };
         }
 
-        public IEnumerable<Block> GetBlocks(IEnumerable<BlockID> blockIds)
+        async public Task<List<Block>> GetBlocks(IEnumerable<BlockID> blockIds)
         {
-            using var cmd = _conn.CreateCommand();
-            cmd.CommandText = @"
-            SELECT
-                ID, Size, VolumeID
-            FROM 
-                Block
-            WHERE 
-                ID IN ({blockIds})";
-            cmd.AddArrayParameters("blockIds", blockIds);
+            var result = new List<Block>();
 
-            var result = new List<Tuple<SizeBytes, VolumeID>>();
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+            int pos = 0;
+            int batchSize = 100;
+            while (true)
             {
-                yield return new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) };
+                using var cmd = _conn.CreateCommand();
+                cmd.CommandText = @"
+                SELECT
+                    ID, Size, VolumeID
+                FROM 
+                    Block
+                WHERE 
+                    ID IN ({blockIds})";
+                cmd.AddArrayParameters("blockIds", blockIds.Skip(pos).Take(batchSize));
+
+                pos += batchSize;
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (reader.Read())
+                {
+                    result.Add(new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) });
+                }
+
+                if (cmd.Parameters.Count != batchSize)
+                    break;
             }
+
+            return result;
         }
 
         public SizeBytes GetBlocksSize(IEnumerable<BlockID> blockIds)
@@ -421,7 +511,7 @@
             return size;
         }
 
-        public IEnumerable<Block> GetBlocksForOperation(OperationID operationId)
+        async public Task<List<Block>> GetBlocksForOperation(OperationID operationId)
         {
             var fileset = GetFilesetForOperation(operationId);
             var filesetEntries = GetFilesetEntriesById(fileset.Id);
@@ -434,15 +524,15 @@
                 allBlockIds.AddRange(blockIds);
             }
 
-            var blocks = GetBlocks(allBlockIds);
+            var blocks = await GetBlocks(allBlockIds);
             return blocks;
         }
 
 
-        public SizeBytes GetSizeOfBackup(OperationID operationID)
+        async public Task<SizeBytes> GetSizeOfBackup(OperationID operationID)
         {
-            var blocks = this.GetBlocksForOperation(operationID);
-            return this.GetBlocksSize(blocks.Select(x => x.Id));
+            var blocks = await GetBlocksForOperation(operationID);
+            return GetBlocksSize(blocks.Select(x => x.Id));
         }
 
         protected virtual void Dispose(bool disposing)

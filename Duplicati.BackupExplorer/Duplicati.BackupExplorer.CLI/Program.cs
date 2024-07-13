@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using Duplicati.BackupExplorer.LocalDatabaseAccess;
+using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 
 if (args.Length != 3) throw new ArgumentException(nameof(args));
 
@@ -19,18 +20,17 @@ foreach(var v in backups)
     Console.WriteLine(v);
 }
 
-void GetBackupSizes()
+async void GetBackupSizes()
 {
     long id1 = 109;
     long id2 = 114;
 
-    long size1 = d.GetSizeOfBackup(id1);
+    long size1 = await d.GetSizeOfBackup(id1);
     Console.WriteLine($"Size1: {size1 / 1024 / 1024 / 1024} GiB");
 }
 
 void FindFileVersions()
 {
-
     var files = d.GetFilesByPath(searchDir, searchFilename);
     foreach(var file in files)
     {
