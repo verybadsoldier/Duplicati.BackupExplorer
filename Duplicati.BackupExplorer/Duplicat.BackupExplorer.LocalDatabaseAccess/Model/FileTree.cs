@@ -16,21 +16,29 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
         public long? BlocksetId { get; set; }
         public CompareResult? CompareResult { get; set; }
         public ObservableCollection<FileNode> Children { get; set; }
+        public Dictionary<string, FileNode> ChildrenHashed { get; set; }
+
+        public long Size { get; set; }
 
         public FileNode(string name)
         {
             Name = name;
             Children = new ObservableCollection<FileNode>();
+            ChildrenHashed = new Dictionary<string, FileNode>();
         }
 
         public void AddChild(FileNode child)
         {
             Children.Add(child);
+            ChildrenHashed[child.Name] = child;
         }
 
         public FileNode? GetChild(string name)
         {
-            return Children.Where(c => c.Name == name).ToList().FirstOrDefault();
+            if (!ChildrenHashed.ContainsKey(name))
+                return null;
+
+            return ChildrenHashed[name];
         }
 
         public void MergeCompareResult(CompareResult compareResult)
@@ -118,18 +126,6 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             {
                 yield return item;
             }
-        }
-
-        public void Sort()
-        {
-            var ft = new FileTree();
-            var files = GetFileNodes().ToList();
-            var ff = files.OrderBy((x) => x.FullPath).ToList();
-            foreach (var d in files.OrderBy((x) => x.FullPath))
-            {
-                ft.AddPath(d.FullPath, d.BlocksetId.Value);
-            }
-            Root = ft.Root;
         }
 
         public FileNode AddPath(string filePath, long blocksetId)

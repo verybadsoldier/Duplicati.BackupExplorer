@@ -12,32 +12,36 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
-  <DockPanel>
-    <StackPanel DockPanel.Dock="Top">
-      <Label>Database:</Label>
-      <TextBox Text="{Binding ProjectFilename}"></TextBox>
-      <Button Command="{Binding Browse}">Browse</Button>
-      <Button Command="{Binding LoadProject}" Content="{Binding LoadButtonLabel}" IsEnabled="{Binding LoadButtonEnabled}" />
-    </StackPanel>
-    
-    <ListBox DockPanel.Dock="Left" ItemsSource="{Binding Backups}" SelectionMode="Multiple" SelectedItems="{Binding SelectedBackups}" Name="ListBoxBackups">
-      <ListBox.ItemTemplate>
-        <DataTemplate>
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{Binding Fileset}" />
-          </StackPanel>
-        </DataTemplate>
-      </ListBox.ItemTemplate>
-    </ListBox>
-    <StackPanel  DockPanel.Dock="Bottom">
-    <ProgressBar  Margin="0 10" Height="35"
+  <DockPanel Margin="10">
+      <Grid ColumnDefinitions="Auto,1*,Auto" DockPanel.Dock="Top">
+        <Label Grid.Column="0" Margin="0,3,0,0">Database:</Label>
+        <TextBox Grid.Column="1" Text="{Binding ProjectFilename}" Margin="0,0,10,0" ></TextBox>
+        <Button Grid.Column="2" Command="{Binding SelectDatabase}">Select Database</Button>
+      </Grid>
+
+    <Grid DockPanel.Dock="Left" RowDefinitions="Auto,1*">
+      <Label Grid.Row="0" Margin="0,10,0,0">Backups:</Label>
+      <ListBox MinWidth="200" Grid.Row="1" ItemsSource="{Binding Backups}" SelectionMode="Multiple" SelectedItems="{Binding SelectedBackups}" Name="ListBoxBackups">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Border Background="LightBlue" CornerRadius="5" Padding="10, 10, 10, 0">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding Fileset}" />
+              <TextBlock Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" Margin="10,0,0,10"/>
+            </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+    <Button DockPanel.Dock="Bottom" Command="{Binding CompareUnique}">Compare Unique</Button>
+    <Button DockPanel.Dock="Bottom" Command="{Binding Compare}">Compare</Button>
+    <ProgressBar DockPanel.Dock="Bottom"
+  Margin="0 10" Height="35"
                 Minimum="0" Maximum="100" Value="{Binding Progress}" ProgressTextFormat="{Binding ProgressTextFormat}"
                 Foreground="Green"
                 ShowProgressText="True" IsVisible="{Binding ProgressVisible}"/>
-      <Button Command="{Binding Compare}">Compare</Button>
-      <Button Command="{Binding CompareUnique}">Compare Unique</Button>
 
-    </StackPanel>
     <TreeView ItemsSource="{Binding FileTree.Root.Children}">
       <TreeView.ItemTemplate>
         <TreeDataTemplate ItemsSource="{Binding Children}">

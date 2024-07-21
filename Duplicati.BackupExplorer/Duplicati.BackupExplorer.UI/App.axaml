@@ -6,6 +6,7 @@
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
   <Application.Resources>
     <local:MultiplyByHundredConverter x:Key="MultiplyByHundredConverter" />
+    <local:FileSizeConverter x:Key="FileSizeConverter" />
   </Application.Resources>
     <Application.Styles>
         <FluentTheme />

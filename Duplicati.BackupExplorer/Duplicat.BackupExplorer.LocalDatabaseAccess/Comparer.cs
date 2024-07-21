@@ -76,6 +76,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
                 RightSize = rightSize,
 
                 SharedSize = sizeIntersect,
+                SharedNumBlocks = shared.Count,
             };
 
             return result;

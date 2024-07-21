@@ -25,6 +25,9 @@
         private Dictionary<BlocksetID, List<BlockID>> _blocklistIdCache = new Dictionary<BlocksetID, List<BlockID>>();
         private Dictionary<BlockID, SizeBytes> _blocksizesCache = new Dictionary<BlockID, SizeBytes>();
         private bool _disposed = false;
+        private List<File>? _filesCache = null;
+        private Dictionary<BlockID, Block>? _blocksCache = null;
+        private Dictionary<BlocksetID, HashSet<BlockID>>? _blocksetCache = null;
 
         public DuplicatiDatabase()
         { }
@@ -42,6 +45,9 @@
 
             //_conn = new SqliteConnection($"Data Source={_filepath}");
             //_conn.Open();
+            InitFilesCache();
+            InitBlocksCache();
+            InitBlocksetCache();
         }
 
         private SqliteConnection OpenInMemory(string filePath)
@@ -390,6 +396,89 @@
             }
         }
 
+        public List<File> GetFilesByIds4(IEnumerable<long> fileIds)
+        {
+            var list = new List<File>();
+            var ids = fileIds.ToHashSet();
+            foreach (var file in _filesCache)
+            {
+                if (ids.Contains(file.Id))
+                {
+                    list.Add(file);
+                }
+            }
+            return list;
+        }
+
+
+        public void InitFilesCache()
+        {
+            using var cmd = _conn.CreateCommand();
+            cmd.CommandText = @"
+                SELECT
+                    F.ID, F.BlocksetID, Path, pp.Prefix, MetadataID
+                FROM 
+                    FileLookup F
+                LEFT JOIN
+	                PathPrefix pp ON pp.ID = F.PrefixID";
+
+            var unsortedFiles = new List<File>();
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                unsortedFiles.Add(new File { Id = reader.GetInt64(0), BlocksetId = reader.GetInt32(1), Path = reader.GetString(2), Prefix = reader.GetString(3), MetadataId = reader.GetInt64(4) });
+            }
+
+            _filesCache = unsortedFiles.OrderBy(x => x.Prefix + x.Path).ToList();
+        }
+
+        public void InitBlocksCache()
+        {
+            using var cmd = _conn.CreateCommand();
+            cmd.CommandText = @"
+            SELECT
+                ID, Size, VolumeID
+            FROM 
+                Block";
+
+            _blocksCache = new Dictionary<SizeBytes, Block>();
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var blockId = reader.GetInt64(0);
+                _blocksCache.Add(blockId, new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) });
+            }
+        }
+
+        public void InitBlocksetCache()
+        {
+
+            using var cmd = _conn.CreateCommand();
+            cmd.CommandText = @"
+            SELECT
+                BlocksetID, BlockID
+            FROM 
+                BlocksetEntry
+            ";
+
+
+            _blocksetCache = new Dictionary<BlocksetID, HashSet<BlockID>>();
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var blocksetID = reader.GetInt64(0);
+                var blockID = reader.GetInt64(1);
+                if (!_blocksetCache.ContainsKey(blocksetID))
+                {
+                    _blocksetCache.Add(blocksetID, new HashSet<BlockID>());
+                }
+                _blocksetCache[blocksetID].Add(blockID);
+            }
+        }
+
         public List<File> GetFilesByIds3(IEnumerable<long> fileIds)
         {
             using var cmd = _conn.CreateCommand();
@@ -453,6 +542,14 @@
             using var reader = await cmd.ExecuteReaderAsync();
             await reader.ReadAsync();
             return new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) };
+        }
+
+        public IEnumerable<Block> GetBlocksByBlocksetId(BlocksetID blocksetId)
+        {
+            foreach(var blockId in _blocksetCache[blocksetId])
+            {
+                yield return _blocksCache[blockId];
+            }
         }
 
         async public Task<List<Block>> GetBlocks(IEnumerable<BlockID> blockIds)

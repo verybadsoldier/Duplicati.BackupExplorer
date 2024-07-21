@@ -9,7 +9,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 {
     public class CompareResult
     {
-
+        public string Test { get; set; } = "asd";
         #region Input State
         public long LeftNumBlocks { get; set; }
         public long LeftSize { get; set; }

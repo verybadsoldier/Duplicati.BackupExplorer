@@ -27,4 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Duplicat.BackupExplorer.LocalDatabaseAccess\Duplicati.BackupExplorer.LocalDatabaseAccess.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <UpToDateCheckInput Remove="Views\test.axaml" />
+  </ItemGroup>
 </Project>

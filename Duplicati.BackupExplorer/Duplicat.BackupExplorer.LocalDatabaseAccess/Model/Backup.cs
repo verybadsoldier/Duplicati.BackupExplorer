@@ -13,9 +13,12 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public FileTree? FileTree { get; set; }
 
+        public long Size { get; set; }
+
         public override string ToString()
         {
             return Fileset.ToString();
         }
+
     }
 }

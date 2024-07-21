@@ -68,8 +68,8 @@ public partial class MainViewModel : ViewModelBase
         {
             ProjectFilename = @"D:\Duplicati\database.sqlite";
             Backups = new ObservableCollection<Backup> {
-                new Backup {Fileset = new Fileset { Id = 1, Timestamp = new System.DateTimeOffset(2021, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=1 } },
-                new Backup {Fileset = new Fileset { Id = 2, Timestamp = new System.DateTimeOffset(2022, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=2 } },
+                new Backup {Fileset = new Fileset { Id = 1, Timestamp = new System.DateTimeOffset(2021, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=1 }, Size=42134234234 },
+                new Backup {Fileset = new Fileset { Id = 2, Timestamp = new System.DateTimeOffset(2022, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=2 } , Size=223423234 },
             };
             items = new ObservableCollection<string> { "asd", "fsg" };
 
@@ -92,34 +92,6 @@ public partial class MainViewModel : ViewModelBase
         if (SelectedBackups.Count > 0)
         {
             var backup = SelectedBackups[SelectedBackups.Count - 1];
-            if (backup.FileTree == null)
-            {               
-                var ft = new FileTree();
-                ShowProgressBar(true);
-
-                await Task.Run(() =>
-                {
-                    ProgressTextFormat = $"Loading fileset {backup} ({{1:0}} %)";
-                    Progress = 20;
-
-                    var fsentries = _database.GetFilesetEntriesById(backup.Fileset.Id);
-                    var files = _database.GetFilesByIds2(fsentries.Select(x => x.FileId));
-
-                    double progressStep = 100.0 / files.Count();
-
-                    foreach (var file in files)
-                    {
-                        ProgressTextFormat = $"Loading file {file} ({{1:0}} %)";
-
-                        ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId);
-                        Progress += progressStep;
-                    }
-                    ft.Sort();
-                });
-                backup.FileTree = ft;
-                ShowProgressBar(false);
-            }
-
             FileTree = backup.FileTree;
         }
     }
@@ -206,10 +178,45 @@ public partial class MainViewModel : ViewModelBase
         public Dictionary<string, FsEntry> Folder { get; set; }
     }
 
-    public async void Browse()
+    public async void SelectDatabase()
     {
         var storageFile = await DoOpenFilePickerAsync();
+        if (storageFile == null) return;
         ProjectFilename = storageFile.Path.AbsolutePath;
+        if (_loadProjectCancellation != null)
+        {
+            _loadProjectCancellation.Cancel();
+            LoadButtonEnabled = false;
+        }
+        else
+        {
+            _loadProjectCancellation = new CancellationTokenSource();
+
+            LoadButtonLabel = "Cancel";
+
+
+            Backups.Clear();
+
+            ShowProgressBar(true);
+
+            try
+            {
+                await Task.Run(LoadBackups);
+            }
+            catch (OperationCanceledException ex)
+            {
+                //
+            }
+            finally
+            {
+                LoadButtonEnabled = true;
+                ShowProgressBar(false);
+                LoadButtonLabel = "Load";
+                _loadProjectCancellation.Dispose();
+                _loadProjectCancellation = null;
+
+            }
+        }
     }
 
     private async Task<IStorageFile?> DoOpenFilePickerAsync()
@@ -218,7 +225,7 @@ public partial class MainViewModel : ViewModelBase
         // for StorageProvider APIs here inside the ViewModel. 
 
         // For your real-world apps, you should follow the MVVM principles
-        // by making service classes and locating them with DI/IoC.
+        // by making service classes and locating them with DI/IoC.@
 
         // See IoCFileOps project for an example of how to accomplish this.
         /*if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
@@ -261,27 +268,53 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    async Task<List<Backup>> LoadBackups()
+    async Task LoadBackups()
     {
+        Progress = 3;
+        ProgressTextFormat = $"Opening database... ({{1:0}} %)";
+
         _database.Open(ProjectFilename);
+
+        Progress = 10;
 
         var filesets = _database.GetFilesets();
 
-        Progress = 0;
-        var progStep = 100 / filesets.Count;
+        var progStep = (100 - Progress) / filesets.Count;
 
-        var backups = new List<Backup>();
         foreach (var item in filesets)
         {
             _loadProjectCancellation.Token.ThrowIfCancellationRequested();
 
 
+            var ft = new FileTree();
+            var backup = new Backup { Fileset = item, FileTree = null };
 
-            backups.Add(new Backup { Fileset = item, FileTree = null });
+            ProgressTextFormat = $"Loading fileset {backup} ({{1:0}} %)";
+
+            var fsentries = _database.GetFilesetEntriesById(backup.Fileset.Id);
+            var files = _database.GetFilesByIds4(fsentries.Select(x => x.FileId));
+
+            long backupSize = 0;
+            foreach (var file in files)
+            {
+                //ProgressTextFormat = $"Loading file {file} ({{1:0}} %)";
+
+                ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId);
+                // Progress += progressStep;
+                
+                if (file.BlocksetId >= 0)
+                {
+                    var blocks = _database.GetBlocksByBlocksetId(file.BlocksetId);
+
+                    backup.Size += blocks.Sum(x => x.Size);
+                }
+            }
+
             Progress += progStep;
-        }
 
-        return backups;
+            backup.FileTree = ft;
+            Backups.Add(backup);
+        }
     }
     private CancellationTokenSource? _loadProjectCancellation;
 
@@ -289,41 +322,4 @@ public partial class MainViewModel : ViewModelBase
 
     public bool LoadButtonEnabled { get { return _loadButtonEnabled; } set { _loadButtonEnabled = value; OnPropertyChanged("LoadButtonEnabled"); } }
 
-    public async void LoadProject()
-    {
-        if (_loadProjectCancellation != null)
-        {
-            _loadProjectCancellation.Cancel();
-            LoadButtonEnabled = false;
-        }
-        else
-        {
-            _loadProjectCancellation = new CancellationTokenSource();
-
-            LoadButtonLabel = "Cancel";
-
-
-            Backups.Clear();
-
-            try
-            {
-                var backups = await Task.Run(LoadBackups);
-
-                backups.ForEach(x => Backups.Add(x));
-            }
-            catch (OperationCanceledException ex)
-            {
-                //
-            }
-            finally
-            {
-                LoadButtonEnabled = true;
-                ShowProgressBar(false);
-                LoadButtonLabel = "Load";
-                _loadProjectCancellation.Dispose();
-                _loadProjectCancellation = null;
-
-            }
-        }
-    }
 }
