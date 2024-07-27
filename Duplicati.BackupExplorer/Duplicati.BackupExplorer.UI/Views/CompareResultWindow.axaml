@@ -12,9 +12,9 @@
     <vm:CompareResultModel />
   </Design.DataContext>
   
-  <TreeView ItemsSource="{Binding FileTree.Root.Children}">
+  <TreeView ItemsSource="{Binding FileTree.Nodes}">
     <TreeView.ItemTemplate>
-      <TreeDataTemplate ItemsSource="{Binding Children}">
+      <TreeDataTemplate ItemsSource="{Binding Children.Values}">
         <StackPanel Orientation="Horizontal">
           <TextBlock Text="{Binding Name}"/>
           <ProgressBar  Margin="0 10" Height="20"
@@ -27,15 +27,16 @@
               <Binding Path="CompareResult.LeftNumBlocks" />
             </MultiBinding>
           </TextBlock.Text>
-            </TextBlock>
-          <TextBlock Margin="30" Background="Gold">
+          </TextBlock>
+          <TextBlock Background="Green">
             <TextBlock.Text>
-              <MultiBinding StringFormat="{}{0} MB/{1} MB">
+              <MultiBinding Converter="{StaticResource FileSizeSharedConverter}">
                 <Binding Path="CompareResult.SharedSize" />
                 <Binding Path="CompareResult.LeftSize" />
               </MultiBinding>
             </TextBlock.Text>
           </TextBlock>
+
         </StackPanel>
       </TreeDataTemplate>
     </TreeView.ItemTemplate>

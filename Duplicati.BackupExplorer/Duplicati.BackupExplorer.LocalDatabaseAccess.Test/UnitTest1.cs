@@ -11,13 +11,16 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Test
         {
             var ft = new FileTree();
 
-            var filePaths = new string[] { @"C:\Windows", @"C:\Temp\MyFile.cs", @"C:\", @"C:\Temp" };
+            ft.AddPath(@"C:\Windows", 1);
+            ft.AddPath(@"C:\Temp\MyFile.cs", 1542351123);
+            ft.AddPath(@"C:\Temp\MyFile2.cs", 3399293492);
+            ft.AddPath(@"C:\", 1);
+            ft.AddPath(@"C:\Temp", 1);
+            ft.AddPath(@"C:\Windows", 1);
 
-            foreach (var f in filePaths) {
-                ft.AddPath(f, 1);
-            }
-
-            Assert.IsTrue(ft.Root.Name == @"C:\");
+            var root = (FileNode)ft.Nodes[0];
+            var cNode = (FileNode)root.Children[0];
+            Assert.IsTrue(cNode.Name == @"C:");
         }
     }
 }

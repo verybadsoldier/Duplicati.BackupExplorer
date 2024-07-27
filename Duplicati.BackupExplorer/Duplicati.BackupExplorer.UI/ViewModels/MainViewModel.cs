@@ -68,16 +68,25 @@ public partial class MainViewModel : ViewModelBase
         {
             ProjectFilename = @"D:\Duplicati\database.sqlite";
             Backups = new ObservableCollection<Backup> {
-                new Backup {Fileset = new Fileset { Id = 1, Timestamp = new System.DateTimeOffset(2021, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=1 }, Size=42134234234 },
-                new Backup {Fileset = new Fileset { Id = 2, Timestamp = new System.DateTimeOffset(2022, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=2 } , Size=223423234 },
+                new Backup {Fileset = new Fileset { Id = 1, Timestamp = new System.DateTimeOffset(2021, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=1 }},
+                new Backup {Fileset = new Fileset { Id = 2, Timestamp = new System.DateTimeOffset(2022, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=2 }},
             };
             items = new ObservableCollection<string> { "asd", "fsg" };
 
-            //FilesetFiles = new List<FileSystemItem>() { new FileSystemItem("C:\\Data", new ObservableCollection<FileSystemItem>() { new FileSystemItem("sdf") }) };
-            var filePaths = new string[] { @"C:\Windows", @"C:\Temp\MyFile.cs", @"C:\", @"C:\Temp" };
-            foreach (var path in filePaths) {
-                FileTree.AddPath(path, 0);
-            }
+            var ft = new FileTree();
+
+            ft.AddPath(@"C:\Temp\MyFile.cs", 1542351123);
+            ft.AddPath(@"C:\Temp\MyFile2.cs", 3399293492);
+            ft.AddPath(@"C:\Windows", 1);
+            ft.AddPath(@"D:\MyDir\MyFile3.cs", 5399293492);
+
+            //ft.UpdateDirectoryCompareResults();
+
+            FileTree = ft;
+
+            LeftSide = new FileTree();
+
+            RightSide = new FileTree();
         }
     }
 
@@ -125,40 +134,100 @@ public partial class MainViewModel : ViewModelBase
     public double Progress { get { return _progress; } set { _progress = value; OnPropertyChanged("Progress"); } }
     public string ProgressTextFormat { get { return _progressTextFormat; } set { _progressTextFormat = value; OnPropertyChanged("ProgressTextFormat"); } }
 
-    async public void Compare()
+    public void SelectLeftSide(object? sender)
     {
-        if (SelectedBackups.Count != 2)
-            return;
+        SelectSide(sender, true);
+    }
 
+    public bool CanSelectLeftSide(object? sender)
+    {
+        return true;
+    }
+
+    public void SelectRightSide(object? sender)
+    {
+        SelectSide(sender, false);
+    }
+
+    private FileTree? _leftSide = null;
+    private FileTree? _rightSide = null;
+
+    public FileTree? LeftSide {  get { return _leftSide; } set { _leftSide = value; OnPropertyChanged("LeftSide"); } }
+    public FileTree? RightSide { get { return _rightSide; } set { _rightSide = value; OnPropertyChanged("RightSide"); } }
+
+    public void SelectSide(object? sender, bool left)
+    {
+        FileTree? ft = null;
+
+        if (sender is TreeView)
+        {
+            TreeView tree = (TreeView)sender;
+            if (tree.SelectedItem != null)
+            {
+                ft = new FileTree();
+                var file = (FileNode)tree.SelectedItem;
+
+                foreach (var f in file.GetChildrensRecursive().Where(x => x.IsFile))
+                {
+                    ft.AddPath(f.FullPath, f.BlocksetId.GetValueOrDefault(), f.NodeSize);
+                }
+            }
+        }
+        else if (sender is ListBox)
+        {
+            ft = new FileTree();
+
+            ListBox listbox = (ListBox)sender;
+
+            if (listbox.SelectedItem != null)
+            {
+                var backup = (Backup)listbox.SelectedItem;
+                ft = backup.FileTree;
+            }
+        }
+
+        if (left)
+        {
+            LeftSide = ft;
+        }else
+        {
+            RightSide = ft;
+        }
+    }
+
+    public bool CanCompare(object? sender)
+    {
+        return true;
+        //return LeftSide != null && RightSide != null; 
+    }
+
+    private bool _isProcessing = false;
+
+    public bool IsProcessing { get { return _isProcessing; } set { _isProcessing = value; OnPropertyChanged("IsProcessing"); } }
+
+    async public void Compare(object? sender)
+    {
+        IsProcessing = true;
         ShowProgressBar(true);
-        var bak1 = SelectedBackups[0];
-        var bak2 = SelectedBackups[1];
-
-        var progressStep = 100.0 / bak2.FileTree.GetFileNodes().Count();
+     
+        var progressStep = 100.0 / LeftSide.GetFileNodes().Count();
         _comparer.OnBlocksCompareFinished += () => { 
             Progress += progressStep;
         };
 
-        await Task.Run(() => _comparer.CompareFiletree(bak1.FileTree, bak2.FileTree));
-        bak1.FileTree.UpdateDirectoryCompareResults();
+        Progress = 5;
+        await Task.Run(() => _comparer.CompareFiletree(LeftSide, RightSide));
+        LeftSide.UpdateDirectoryCompareResults();
 
         var dialog = new CompareResultWindow();
-        dialog.DataContext = new CompareResultModel() { FileTree=bak1.FileTree };
+        dialog.DataContext = new CompareResultModel() { FileTree=LeftSide};
 
         dialog.Show();
+
+        IsProcessing = false;
+        ShowProgressBar(false);
     }
-
-    public void CompareDetailed()
-    {
-        if (SelectedBackups.Count != 2)
-            return;
-
-        var bak1 = SelectedBackups[0];
-        var bak2 = SelectedBackups[1];
-
-        var result = _comparer.CompareFilesets(bak1.Fileset, bak2.Fileset);
-    }
-
+    /*
     async public void CompareUnique()
     {
         if (SelectedBackups.Count != 1)
@@ -170,7 +239,7 @@ public partial class MainViewModel : ViewModelBase
         var result = await _comparer.CompareFilesetsUnique(bak.Fileset, Backups.Where(x => x != bak).Select(x => x.Fileset).ToList());
         int i = 0;
         i++;
-    }
+    }*/
     class FsEntry
     {
         public string Name;
@@ -299,15 +368,18 @@ public partial class MainViewModel : ViewModelBase
             {
                 //ProgressTextFormat = $"Loading file {file} ({{1:0}} %)";
 
-                ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId);
-                // Progress += progressStep;
-                
+                long? fileSize = null;
                 if (file.BlocksetId >= 0)
                 {
                     var blocks = _database.GetBlocksByBlocksetId(file.BlocksetId);
 
-                    backup.Size += blocks.Sum(x => x.Size);
+                    fileSize = blocks.Sum(x => x.Size);
                 }
+
+
+                ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId, fileSize);
+                // Progress += progressStep;
+                
             }
 
             Progress += progStep;

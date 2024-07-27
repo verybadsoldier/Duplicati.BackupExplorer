@@ -26,7 +26,7 @@ public partial class CompareResultModel : ViewModelBase
     {
         FileTree = new FileTree();
         var node = FileTree.AddPath("D:\\myPath\\myFile.dat", 224);
-        node.CompareResult = new CompareResult() { RightSize= 1000, LeftSize= 1000, LeftNumBlocks=200, RightNumBlocks=900, SharedSize=876, SharedNumBlocks=180};
+        node.CompareResult = new CompareResult() { RightSize=1000000000, LeftSize=12300000000, LeftNumBlocks=200, RightNumBlocks=900, SharedSize=616515125, SharedNumBlocks=180};
         FileTree.UpdateDirectoryCompareResults();
     }
 

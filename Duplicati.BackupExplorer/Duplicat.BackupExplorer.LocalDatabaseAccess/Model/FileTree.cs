@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Specialized;
+using System.ComponentModel;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 {
@@ -12,38 +14,48 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
     {
         public string Name { get; set; }
         public FileNode? Parent { get; set; }
-        public bool IsFile { get; set; }
+        public bool IsFile { get; set; } = false;
         public long? BlocksetId { get; set; }
         public CompareResult? CompareResult { get; set; }
-        public ObservableCollection<FileNode> Children { get; set; }
-        public Dictionary<string, FileNode> ChildrenHashed { get; set; }
+        public OrderedDictionary Children { get; set; } = new OrderedDictionary();
 
-        public long Size { get; set; }
+        private long? _fileSize;
 
-        public FileNode(string name)
+        public long NodeSize
+        {
+            get
+            {
+                if (IsFile)
+                    return _fileSize.Value;
+                else
+                {
+                    return Children.Values.OfType<FileNode>().Sum(x => x.NodeSize);
+                }
+            }
+        }
+
+        public FileNode(string name, long? fileSize)
         {
             Name = name;
-            Children = new ObservableCollection<FileNode>();
-            ChildrenHashed = new Dictionary<string, FileNode>();
+            _fileSize = fileSize;
         }
 
         public void AddChild(FileNode child)
         {
-            Children.Add(child);
-            ChildrenHashed[child.Name] = child;
+            Children[child.Name] = child;
         }
 
         public FileNode? GetChild(string name)
         {
-            if (!ChildrenHashed.ContainsKey(name))
+            if (!Children.Contains(name))
                 return null;
 
-            return ChildrenHashed[name];
+            return Children[name] as FileNode;
         }
 
         public void MergeCompareResult(CompareResult compareResult)
         {
-            foreach (FileNode child in Children) {
+            foreach (FileNode child in Children.Values) {
                 if (child.IsFile)
                 {
                     compareResult.LeftNumBlocks += child.CompareResult.LeftNumBlocks;
@@ -76,21 +88,21 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
                 yield return this;
             }
 
-            foreach (var child in Children)
+            foreach (var child in Children.Values)
             {
-
-                foreach (var item in child.GetChildrensRecursive(filesOnly))
+                var filenode = (FileNode)child;
+                foreach (var item in filenode.GetChildrensRecursive(filesOnly))
                     yield return item;
-
             }
         }
 
         public void PrintTree(string indent = "")
         {
             Console.WriteLine($"{indent}{(IsFile ? "File: " : "Dir: ")}{Name}");
-            foreach (var child in Children)
+            foreach (var child in Children.Values)
             {
-                child.PrintTree(indent + "  ");
+                var filenode = (FileNode)child;
+                filenode.PrintTree(indent + "  ");
             }
         }
 
@@ -113,25 +125,25 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
     public class FileTree
     {                                    
-        public FileNode Root { get; set; }
+        public ObservableCollection<FileNode> Nodes { get; set; } = new ObservableCollection<FileNode>();
 
         public FileTree()
         {
-            Root = new FileNode("Root");
+            Nodes.Add(new FileNode("Root", null));
         }
 
         public IEnumerable<FileNode> GetFileNodes(bool filesOnly=true)
         {
-            foreach (var item in Root.GetChildrensRecursive(filesOnly))
+            foreach (var item in Nodes[0].GetChildrensRecursive(filesOnly))
             {
                 yield return item;
             }
         }
 
-        public FileNode AddPath(string filePath, long blocksetId)
+        public FileNode AddPath(string filePath, long blocksetId, long? size=null)
         {
             var parts = filePath.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
-            var current = Root;
+            var current = Nodes[0];
 
             for (int i = 0; i < parts.Length; i++)
             {
@@ -141,8 +153,9 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
                 if (child == null)
                 {
-                    child = new FileNode(part);
+                    child = new FileNode(part, size.GetValueOrDefault());
                     child.Parent = current;
+
                     current.AddChild(child);
                 }
 
@@ -165,7 +178,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public void UpdateDirectoryCompareResults()
         {
-            foreach(var item in Root.GetChildrensRecursive(false))
+            foreach(var item in Nodes[0].GetChildrensRecursive(false))
             {
                 item.UpdateDirectoryCompareResult();
             }

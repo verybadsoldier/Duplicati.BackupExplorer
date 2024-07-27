@@ -13,7 +13,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public FileTree? FileTree { get; set; }
 
-        public long Size { get; set; }
+        public long Size {  get { return ((FileNode)FileTree.Nodes[0]).NodeSize; } }
 
         public override string ToString()
         {

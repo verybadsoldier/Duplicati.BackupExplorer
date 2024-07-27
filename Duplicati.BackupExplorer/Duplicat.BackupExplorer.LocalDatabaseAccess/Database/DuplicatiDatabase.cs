@@ -27,7 +27,7 @@
         private bool _disposed = false;
         private List<File>? _filesCache = null;
         private Dictionary<BlockID, Block>? _blocksCache = null;
-        private Dictionary<BlocksetID, HashSet<BlockID>>? _blocksetCache = null;
+        private Dictionary<BlocksetID, HashSet<Block>>? _blocksetCache = null;
 
         public DuplicatiDatabase()
         { }
@@ -442,7 +442,7 @@
             FROM 
                 Block";
 
-            _blocksCache = new Dictionary<SizeBytes, Block>();
+            _blocksCache = new Dictionary<BlockID, Block>();
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -464,7 +464,7 @@
             ";
 
 
-            _blocksetCache = new Dictionary<BlocksetID, HashSet<BlockID>>();
+            _blocksetCache = new Dictionary<BlocksetID, HashSet<Block>>();
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -473,9 +473,9 @@
                 var blockID = reader.GetInt64(1);
                 if (!_blocksetCache.ContainsKey(blocksetID))
                 {
-                    _blocksetCache.Add(blocksetID, new HashSet<BlockID>());
+                    _blocksetCache.Add(blocksetID, new HashSet<Block>());
                 }
-                _blocksetCache[blocksetID].Add(blockID);
+                _blocksetCache[blocksetID].Add(_blocksCache[blockID]);
             }
         }
 
@@ -544,12 +544,9 @@
             return new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) };
         }
 
-        public IEnumerable<Block> GetBlocksByBlocksetId(BlocksetID blocksetId)
+        public HashSet<Block> GetBlocksByBlocksetId(BlocksetID blocksetId)
         {
-            foreach(var blockId in _blocksetCache[blocksetId])
-            {
-                yield return _blocksCache[blockId];
-            }
+            return _blocksetCache[blocksetId];
         }
 
         async public Task<List<Block>> GetBlocks(IEnumerable<BlockID> blockIds)
