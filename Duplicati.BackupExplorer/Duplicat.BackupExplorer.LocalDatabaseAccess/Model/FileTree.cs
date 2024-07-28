@@ -126,10 +126,20 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
     public class FileTree
     {                                    
         public ObservableCollection<FileNode> Nodes { get; set; } = new ObservableCollection<FileNode>();
+        
+        public string? Name { get; set; }
 
         public FileTree()
         {
             Nodes.Add(new FileNode("Root", null));
+        }
+
+        override public string ToString()
+        {
+            if (Name != null)
+                return Name;
+            else
+                return "<NoName>";
         }
 
         public IEnumerable<FileNode> GetFileNodes(bool filesOnly=true)

@@ -124,6 +124,9 @@ public partial class MainViewModel : ViewModelBase
     private string _projectFilename;
     public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged("ProjectFilename"); } }
 
+    public long? _allBackupsSize;
+    public long? AllBackupsSize { get { return _allBackupsSize; } set { _allBackupsSize = value; OnPropertyChanged("AllBackupsSize"); } }
+
     public ObservableCollection<Backup> Backups { get; set; } = new ObservableCollection<Backup>();
 
     public ObservableCollection<Backup> SelectedBackups { get; set; } = new ObservableCollection<Backup>();
@@ -164,9 +167,12 @@ public partial class MainViewModel : ViewModelBase
             TreeView tree = (TreeView)sender;
             if (tree.SelectedItem != null)
             {
-                ft = new FileTree();
                 var file = (FileNode)tree.SelectedItem;
 
+                ft = new FileTree()
+                {
+                    Name = $"{FileTree} - {file}"
+                };
                 foreach (var f in file.GetChildrensRecursive().Where(x => x.IsFile))
                 {
                     ft.AddPath(f.FullPath, f.BlocksetId.GetValueOrDefault(), f.NodeSize);
@@ -350,12 +356,14 @@ public partial class MainViewModel : ViewModelBase
 
         var progStep = (100 - Progress) / filesets.Count;
 
+        AllBackupsSize = 0;
+        HashSet<Block> allBlocks = new HashSet<Block>();
         foreach (var item in filesets)
         {
             _loadProjectCancellation.Token.ThrowIfCancellationRequested();
 
 
-            var ft = new FileTree();
+            var ft = new FileTree() { Name = $"Backup {item}" };
             var backup = new Backup { Fileset = item, FileTree = null };
 
             ProgressTextFormat = $"Loading fileset {backup} ({{1:0}} %)";
@@ -363,7 +371,6 @@ public partial class MainViewModel : ViewModelBase
             var fsentries = _database.GetFilesetEntriesById(backup.Fileset.Id);
             var files = _database.GetFilesByIds4(fsentries.Select(x => x.FileId));
 
-            long backupSize = 0;
             foreach (var file in files)
             {
                 //ProgressTextFormat = $"Loading file {file} ({{1:0}} %)";
@@ -372,22 +379,25 @@ public partial class MainViewModel : ViewModelBase
                 if (file.BlocksetId >= 0)
                 {
                     var blocks = _database.GetBlocksByBlocksetId(file.BlocksetId);
+                    allBlocks.UnionWith(blocks);
 
                     fileSize = blocks.Sum(x => x.Size);
                 }
 
 
                 ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId, fileSize);
-                // Progress += progressStep;
                 
             }
 
             Progress += progStep;
 
             backup.FileTree = ft;
+
+            AllBackupsSize = allBlocks.Sum(x => x.Size);
             Backups.Add(backup);
         }
     }
+
     private CancellationTokenSource? _loadProjectCancellation;
 
     private bool _loadButtonEnabled = true;
