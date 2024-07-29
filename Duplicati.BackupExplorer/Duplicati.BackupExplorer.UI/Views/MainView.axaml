@@ -44,7 +44,14 @@
         </ListBox.ItemTemplate>
       </ListBox>
     </Grid>
-    <Button DockPanel.Dock="Bottom" Command="{Binding Compare}" Background="Green" HorizontalAlignment="Right" IsEnabled="{Binding !IsProcessing}">Compare</Button>
+    <Button DockPanel.Dock="Bottom" Command="{Binding Compare}" Background="Green" HorizontalAlignment="Right">
+      <Button.IsEnabled>
+        <MultiBinding Converter="{x:Static BoolConverters.And}">
+          <Binding Path="!IsProcessing"></Binding>
+          <Binding Path="IsProjectLoaded"></Binding>
+          <Binding Path="IsCompareElementsSelected"></Binding>
+        </MultiBinding>
+      </Button.IsEnabled>Compare</Button>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
       <Label >Right Side Compare:</Label>
       <Label Content="{Binding RightSide}"></Label>

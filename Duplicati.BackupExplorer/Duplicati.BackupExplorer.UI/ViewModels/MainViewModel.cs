@@ -7,6 +7,7 @@ using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
 using Duplicati.BackupExplorer.UI.Views;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
@@ -199,6 +200,11 @@ public partial class MainViewModel : ViewModelBase
         {
             RightSide = ft;
         }
+
+        if (LeftSide != null && RightSide != null)
+        {
+            IsCompareElementsSelected = true;
+        }
     }
 
     public bool CanCompare(object? sender)
@@ -233,19 +239,27 @@ public partial class MainViewModel : ViewModelBase
         IsProcessing = false;
         ShowProgressBar(false);
     }
+
+    private bool _isCompareElementsSelected = false;
+
+    public bool IsCompareElementsSelected { get { return _isCompareElementsSelected; } set { _isCompareElementsSelected = value; OnPropertyChanged("IsCompareElementsSelected"); } }
+
+    private bool _isProjectLoaded = false;
+
+    public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged("IsProjectLoaded"); } }
     /*
-    async public void CompareUnique()
-    {
-        if (SelectedBackups.Count != 1)
-            return;
+     async public void CompareUnique()
+     {
+         if (SelectedBackups.Count != 1)
+             return;
 
-        var bak = SelectedBackups[0];
+         var bak = SelectedBackups[0];
 
 
-        var result = await _comparer.CompareFilesetsUnique(bak.Fileset, Backups.Where(x => x != bak).Select(x => x.Fileset).ToList());
-        int i = 0;
-        i++;
-    }*/
+         var result = await _comparer.CompareFilesetsUnique(bak.Fileset, Backups.Where(x => x != bak).Select(x => x.Fileset).ToList());
+         int i = 0;
+         i++;
+     }*/
     class FsEntry
     {
         public string Name;
@@ -396,6 +410,8 @@ public partial class MainViewModel : ViewModelBase
             AllBackupsSize = allBlocks.Sum(x => x.Size);
             Backups.Add(backup);
         }
+
+        IsProjectLoaded = true;
     }
 
     private CancellationTokenSource? _loadProjectCancellation;
