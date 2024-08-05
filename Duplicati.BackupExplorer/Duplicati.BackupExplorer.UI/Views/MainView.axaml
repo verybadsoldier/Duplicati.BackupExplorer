@@ -13,74 +13,80 @@
   </Design.DataContext>
 
   <DockPanel Margin="10">
-      <Grid ColumnDefinitions="Auto,1*,Auto" DockPanel.Dock="Top">
-        <Label Grid.Column="0" Margin="0,3,0,0">Database:</Label>
-        <TextBox Grid.Column="1" Text="{Binding ProjectFilename}" Margin="0,0,10,0" IsEnabled="False"></TextBox>
-        <Button Grid.Column="2" Command="{Binding SelectDatabase}">Select Database</Button>
-      </Grid>
+    <Grid ColumnDefinitions="Auto,1*,Auto" DockPanel.Dock="Top">
+      <Label Grid.Column="0" Margin="0,3,0,0">Database:</Label>
+      <TextBox Grid.Column="1" Text="{Binding ProjectFilename}" Margin="0,0,10,0" IsEnabled="False"></TextBox>
+      <Button Grid.Column="2" Command="{Binding SelectDatabase}">Select Database</Button>
+    </Grid>
 
     <Grid DockPanel.Dock="Left" RowDefinitions="Auto,1*">
       <StackPanel Orientation="Horizontal">
         <Label Grid.Row="0" Margin="0,10,0,0">Backups:</Label>
         <Label Grid.Row="0" Margin="0,10,0,0" Foreground="DarkGray" Content="{Binding AllBackupsSize, Converter={StaticResource FileSizeConverter}}"></Label>
       </StackPanel>
-      
+
       <ListBox MinWidth="200" Grid.Row="1" ItemsSource="{Binding Backups}" SelectedItems="{Binding SelectedBackups}" Name="ListBoxBackups">
         <ListBox.ContextMenu>
           <ContextMenu>
-            <MenuItem Header="Select Left Side Compare" Command="{Binding SelectLeftSide}" CommandParameter="{Binding $parent[2]} "/>
-            <MenuItem Header="Select Right Side Compare" Command="{Binding SelectRightSide}" CommandParameter="{Binding $parent[2]}"/>
+            <MenuItem Header="Select as Comparison Base" Command="{Binding SelectLeftSide}" CommandParameter="{Binding $parent[2]} "/>
+            <MenuItem Header="Select as Comparison Target" Command="{Binding SelectRightSide}" CommandParameter="{Binding $parent[2]}"/>
+            <MenuItem Header="Compare to all Backups" Command="{Binding CompareToAll}" CommandParameter="{Binding $parent[2]}"/>
           </ContextMenu>
         </ListBox.ContextMenu>
         <ListBox.ItemTemplate>
           <DataTemplate>
             <Border Background="LightBlue" CornerRadius="5" Padding="10, 10, 10, 0">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock Text="{Binding Fileset}" />
-              <TextBlock Foreground="DarkGray" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" Margin="10,0,0,10"/>
-            </StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <Image Width="20" Height="20" Margin="-5,-9,5,0" RenderOptions.BitmapInterpolationMode="HighQuality" Source="avares://Duplicati.BackupExplorer.UI/Assets/database-db-icon.png" />
+                <TextBlock Text="{Binding Fileset}" />
+                <TextBlock Foreground="DarkGray" Text="{Binding Size, Converter={StaticResource FileSizeConverter}}" Margin="10,0,0,10"/>
+              </StackPanel>
             </Border>
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
     </Grid>
-    <Button DockPanel.Dock="Bottom" Command="{Binding Compare}" Background="Green" HorizontalAlignment="Right">
-      <Button.IsEnabled>
-        <MultiBinding Converter="{x:Static BoolConverters.And}">
-          <Binding Path="!IsProcessing"></Binding>
-          <Binding Path="IsProjectLoaded"></Binding>
-          <Binding Path="IsCompareElementsSelected"></Binding>
-        </MultiBinding>
-      </Button.IsEnabled>Compare</Button>
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
-      <Label >Right Side Compare:</Label>
-      <Label Content="{Binding RightSide}"></Label>
-    </StackPanel>
-    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
-      <Label >Left Side Compare:</Label>
-      <Label Content="{Binding LeftSide}"></Label>
-    </StackPanel>
-    <ProgressBar DockPanel.Dock="Bottom"
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto, Auto, *" RowDefinitions="Auto,30,30">
+      <ProgressBar DockPanel.Dock="Bottom" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
   Margin="0 10" Height="35"
-                Minimum="0" Maximum="100" Value="{Binding Progress}" ProgressTextFormat="{Binding ProgressTextFormat}"
-                Foreground="Green"
-                ShowProgressText="True" IsVisible="{Binding ProgressVisible}"/>
+            Minimum="0" Maximum="100" Value="{Binding Progress}" ProgressTextFormat="{Binding ProgressTextFormat}"
+            Foreground="Green"
+            ShowProgressText="True" IsVisible="{Binding ProgressVisible}"/>
 
-    <TreeView ItemsSource="{Binding FileTree.Nodes}">
-      <TreeView.ItemTemplate>
-        <TreeDataTemplate ItemsSource="{Binding Children.Values}">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{Binding Name}"/>
-            <TextBlock Foreground="LightGray" Text="{Binding NodeSize, Converter={StaticResource FileSizeConverter}}" Margin="10,0,0,0"/>
-          </StackPanel>
-        </TreeDataTemplate>
-      </TreeView.ItemTemplate>
-      <TreeView.ContextMenu>
-        <ContextMenu>
-          <MenuItem Header="Select Left Side Compare" Command="{Binding SelectLeftSide}" CommandParameter="{Binding $parent[2]} "/>
-          <MenuItem Header="Select Right Side Compare" Command="{Binding SelectRightSide}" CommandParameter="{Binding $parent[2]}"/>
-        </ContextMenu>
-      </TreeView.ContextMenu>
-    </TreeView>
+      <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
+      <Label Grid.Row="1" Grid.Column="1" Content="{Binding LeftSide}"></Label>
+      <Label Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
+      <Label Grid.Row="2" Grid.Column="1" Content="{Binding RightSide}"></Label>
+      <Button Grid.Column="3" Grid.Row="1" Grid.RowSpan="2" Command="{Binding Compare}" Background="Green" HorizontalAlignment="Right" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="180" MinHeight="60" FontSize="24" FontWeight="Bold">
+        <Button.IsEnabled>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="!IsProcessing"></Binding>
+            <Binding Path="IsProjectLoaded"></Binding>
+            <Binding Path="IsCompareElementsSelected"></Binding>
+          </MultiBinding>
+        </Button.IsEnabled>Compare
+      </Button>
+    </Grid>
+
+    <StackPanel>
+      <TextBox>Backup Content:</TextBox>
+      <TreeView ItemsSource="{Binding FileTree.Nodes}" Margin="0,10,0,0">
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate ItemsSource="{Binding Children.Values}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding Name}"/>
+              <TextBlock Foreground="LightGray" Text="{Binding NodeSize, Converter={StaticResource FileSizeConverter}}" Margin="10,0,0,0"/>
+            </StackPanel>
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+        <TreeView.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Select as Comparison Base" Command="{Binding SelectLeftSide}" CommandParameter="{Binding $parent[2]} "/>
+            <MenuItem Header="Select as Comparison Target" Command="{Binding SelectRightSide}" CommandParameter="{Binding $parent[2]}"/>
+            <MenuItem Header="Compare to all Backups" Command="{Binding CompareToAll}" CommandParameter="{Binding $parent[2]}"/>
+          </ContextMenu>
+        </TreeView.ContextMenu>
+      </TreeView>
+    </StackPanel>
   </DockPanel>
 </UserControl>

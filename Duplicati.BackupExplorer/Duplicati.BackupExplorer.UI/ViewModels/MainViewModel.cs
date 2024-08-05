@@ -94,6 +94,7 @@ public partial class MainViewModel : ViewModelBase
     private void ShowProgressBar(bool show)
     {
         Progress = 0;
+        ProgressTextFormat = $"Progress... ({{1:0}} %)";
         ProgressVisible = show;
     }
 
@@ -159,13 +160,13 @@ public partial class MainViewModel : ViewModelBase
     public FileTree? LeftSide {  get { return _leftSide; } set { _leftSide = value; OnPropertyChanged("LeftSide"); } }
     public FileTree? RightSide { get { return _rightSide; } set { _rightSide = value; OnPropertyChanged("RightSide"); } }
 
-    public void SelectSide(object? sender, bool left)
+    private FileTree GetFileTreeFromSelection(object? selection)
     {
         FileTree? ft = null;
 
-        if (sender is TreeView)
+        if (selection is TreeView)
         {
-            TreeView tree = (TreeView)sender;
+            TreeView tree = (TreeView)selection;
             if (tree.SelectedItem != null)
             {
                 var file = (FileNode)tree.SelectedItem;
@@ -180,11 +181,11 @@ public partial class MainViewModel : ViewModelBase
                 }
             }
         }
-        else if (sender is ListBox)
+        else if (selection is ListBox)
         {
             ft = new FileTree();
 
-            ListBox listbox = (ListBox)sender;
+            ListBox listbox = (ListBox)selection;
 
             if (listbox.SelectedItem != null)
             {
@@ -192,6 +193,12 @@ public partial class MainViewModel : ViewModelBase
                 ft = backup.FileTree;
             }
         }
+        return ft;
+    }
+
+    public void SelectSide(object? sender, bool left)
+    {
+        var ft = GetFileTreeFromSelection(sender);
 
         if (left)
         {
@@ -217,6 +224,32 @@ public partial class MainViewModel : ViewModelBase
 
     public bool IsProcessing { get { return _isProcessing; } set { _isProcessing = value; OnPropertyChanged("IsProcessing"); } }
 
+    async public void CompareToAll(object? sender)
+    {      
+        IsProcessing = true;
+        ShowProgressBar(true);
+
+        var ftLeft = GetFileTreeFromSelection(sender);
+
+        var progressStep = 100.0 / ftLeft.GetFileNodes().Count();
+        _comparer.OnBlocksCompareFinished += () => {
+            Progress += progressStep;
+        };
+
+
+        Progress = 5;
+        await Task.Run(() => _comparer.CompareFiletrees(ftLeft, Backups.Select(x => x.FileTree).Where(x => x != ftLeft)));
+        ftLeft.UpdateDirectoryCompareResults();
+
+        var dialog = new CompareResultWindow() { Title = $"Comparison Result - {ftLeft.Name} <-> All" };
+        dialog.DataContext = new CompareResultModel() { FileTree = ftLeft, LeftSide = ftLeft, RightSideName = "All Backups" };
+
+        dialog.Show();
+
+        IsProcessing = false;
+        ShowProgressBar(false);
+    }
+
     async public void Compare(object? sender)
     {
         IsProcessing = true;
@@ -231,8 +264,8 @@ public partial class MainViewModel : ViewModelBase
         await Task.Run(() => _comparer.CompareFiletree(LeftSide, RightSide));
         LeftSide.UpdateDirectoryCompareResults();
 
-        var dialog = new CompareResultWindow();
-        dialog.DataContext = new CompareResultModel() { FileTree=LeftSide};
+        var dialog = new CompareResultWindow() { Title = $"Comparison Result - {LeftSide.Name} <-> {RightSide.Name}" };
+        dialog.DataContext = new CompareResultModel() { FileTree=LeftSide, LeftSide=LeftSide, RightSideName=RightSide.Name};
 
         dialog.Show();
 
@@ -247,19 +280,7 @@ public partial class MainViewModel : ViewModelBase
     private bool _isProjectLoaded = false;
 
     public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged("IsProjectLoaded"); } }
-    /*
-     async public void CompareUnique()
-     {
-         if (SelectedBackups.Count != 1)
-             return;
 
-         var bak = SelectedBackups[0];
-
-
-         var result = await _comparer.CompareFilesetsUnique(bak.Fileset, Backups.Where(x => x != bak).Select(x => x.Fileset).ToList());
-         int i = 0;
-         i++;
-     }*/
     class FsEntry
     {
         public string Name;

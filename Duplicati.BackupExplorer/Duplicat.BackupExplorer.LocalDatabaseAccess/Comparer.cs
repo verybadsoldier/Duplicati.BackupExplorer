@@ -19,7 +19,6 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         public delegate void BlocksCompareFinished ();
 
-        // Declare the event.
         public event BlocksCompareFinished OnBlocksCompareFinished;
 
         async public Task<HashSet<Block>> GetBlockIdsForFileset(Fileset fs)
@@ -30,15 +29,12 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
             var files = fsEntries.Select(x => _database.GetFileById(x.FileId)).ToList();
             var blockIds = files.SelectMany(x => _database.GetBlockIdsByBlocksetId(x.BlocksetId));
-            //var files = _database.GetFilesByIds(fsEntries.Select(x => x.FileId));
-            //var blocksetIds = fsEntries.Select(x => _database.GetFileById(x.FileId).BlocksetId);
             var blocks = new HashSet<Block>();
             foreach (var blockId in blockIds)
             {
                 var a = await _database.GetBlock(blockId);
                 blocks.Add(a);
             }
-            //var f = blockIds.Select(async x => await _database.GetBlock(x)).ToList();
             return blocks;
         }
 
@@ -52,12 +48,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         private CompareResult CalculateResults(HashSet<Block> leftBlocks, HashSet<Block> rightBlocks, long rightSize)
         {
-            //var leftBlocksSet = new HashSet<Block>(leftBlocks);
-            //var rightBlocksSet = new HashSet<Block>(rightBlocks);
-
             var leftSize = leftBlocks.Sum(x => x.Size);
-            //rightSize = rightBlocks.Sum(x => x.Size);
-
 
             // Create a copy of set1 to preserve the original
             HashSet<Block> shared = new HashSet<Block>(leftBlocks);
@@ -84,12 +75,21 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         async public Task CompareFiletree(FileTree left, FileTree rightF)
         {
+            await CompareFiletrees(left, [rightF]);
+        }
+
+
+        async public Task CompareFiletrees(FileTree left, IEnumerable<FileTree> rightFss)
+        {
             var rightBlocks = new List<Block>();
             var blockIds = new HashSet<long>();
-            foreach (var rightFs in rightF.GetFileNodes())
+            foreach(var rightF in rightFss)
             {
-                var f = _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value);
-                blockIds.UnionWith(f);
+                foreach (var rightFs in rightF.GetFileNodes())
+                {
+                    var f = _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value);
+                    blockIds.UnionWith(f);
+                }
             }
 
             rightBlocks.AddRange(await _database.GetBlocks(blockIds));
@@ -114,19 +114,5 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
                 OnBlocksCompareFinished?.Invoke();
             }
         }
-        /*
-        async public Task<CompareResult> CompareFilesetsUnique(Fileset leftFs, List<Fileset> rightFss)
-        {
-            var blocks1 = await GetBlockIdsForFileset(leftFs);
-
-
-            var rightBlocks = new List<Block>();
-            foreach (var rightFs in rightFss)
-            {
-                rightBlocks.AddRange(await GetBlockIdsForFileset(rightFs));
-            }
-
-            return CalculateResults(blocks1, rightBlocks);
-        }*/
     }
 }

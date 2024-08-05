@@ -11,27 +11,41 @@
          to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
     <vm:CompareResultModel />
   </Design.DataContext>
-  
-  <TreeView ItemsSource="{Binding FileTree.Nodes}">
-    <TreeView.ItemTemplate>
-      <TreeDataTemplate ItemsSource="{Binding Children.Values}">
-        <StackPanel Orientation="Horizontal">
-          <TextBlock Text="{Binding Name}" Margin="0,15,15,0"/>
-          <ProgressBar MinWidth="100" Height="20"
-              Minimum="0" Maximum="100" Value="{Binding CompareResult.SharedPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
-              ShowProgressText="True"/>
 
-          <TextBlock Foreground="DarkGray" Margin="15">
-            <TextBlock.Text>
-              <MultiBinding Converter="{StaticResource FileSizeSharedConverter}">
-                <Binding Path="CompareResult.SharedSize" />
-                <Binding Path="CompareResult.LeftSize" />
-              </MultiBinding>
-            </TextBlock.Text>
-          </TextBlock>
+  <StackPanel Orientation="Vertical">
+    <Grid ColumnDefinitions="Auto, Auto, *" RowDefinitions="30,30,30" Margin="10">
+      <Label Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
+      <Label Grid.Row="0" Grid.Column="1" Content="{Binding LeftSide}"></Label>
+      <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
+      <Label Grid.Row="1" Grid.Column="1" Content="{Binding RightSide}"></Label>
+      <Button Grid.Row="0" Grid.Column="2" Command="{Binding Close}" Background="Red" HorizontalAlignment="Right">
+        Close
+      </Button>
+      <CheckBox Grid.Row="2" Grid.Column="0" IsChecked="{Binding InvertShare}" HorizontalAlignment="Right">Invert Shares</CheckBox>
+    </Grid>
 
-        </StackPanel>
-      </TreeDataTemplate>
-    </TreeView.ItemTemplate>
-  </TreeView>
+    <TreeView ItemsSource="{Binding FileTree.Nodes}">
+      <TreeView.ItemTemplate>
+        <TreeDataTemplate ItemsSource="{Binding Children.Values}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Name}" Margin="0,15,15,0"/>
+            <ProgressBar MinWidth="100" Height="20"
+                Minimum="0" Maximum="100" Value="{Binding CompareResult.SharedPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
+                ShowProgressText="True"/>
+
+            <TextBlock Foreground="DarkGray" Margin="15">
+              <TextBlock.Text>
+                <MultiBinding Converter="{StaticResource FileSizeSharedConverter}">
+                  <Binding Path="CompareResult.SharedSize" />
+                  <Binding Path="CompareResult.LeftSize" />
+                </MultiBinding>
+              </TextBlock.Text>
+            </TextBlock>
+
+          </StackPanel>
+        </TreeDataTemplate>
+      </TreeView.ItemTemplate>
+    </TreeView>
+
+  </StackPanel>
 </Window>

@@ -22,6 +22,15 @@ public partial class CompareResultModel : ViewModelBase
 {
     public FileTree FileTree { get; set; }
 
+    private FileTree? _leftSide = null;
+    private string _rightSideName = null;
+
+    private bool _invertShares = false;
+
+    public FileTree? LeftSide { get { return _leftSide; } set { _leftSide = value; OnPropertyChanged("LeftSide"); } }
+    public string RightSideName { get { return _rightSideName; } set { _rightSideName = value; OnPropertyChanged("RightSideName"); } }
+    public bool InvertShares { get { return _invertShares; } set { _invertShares = value; OnPropertyChanged("InvertShares"); } }
+
     public CompareResultModel()
     {
         FileTree = new FileTree();
