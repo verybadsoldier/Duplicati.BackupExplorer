@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+
 using Avalonia.Platform.Storage;
 using Duplicati.BackupExplorer.LocalDatabaseAccess;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
@@ -23,13 +24,21 @@ public partial class CompareResultModel : ViewModelBase
     public FileTree FileTree { get; set; }
 
     private FileTree? _leftSide = null;
-    private string _rightSideName = null;
+    private string? _rightSideName = null;
 
-    private bool _invertShares = false;
+    private bool _showDisjunct = false;
 
     public FileTree? LeftSide { get { return _leftSide; } set { _leftSide = value; OnPropertyChanged("LeftSide"); } }
     public string RightSideName { get { return _rightSideName; } set { _rightSideName = value; OnPropertyChanged("RightSideName"); } }
-    public bool InvertShares { get { return _invertShares; } set { _invertShares = value; OnPropertyChanged("InvertShares"); } }
+    public bool ShowDisjunct { 
+        get { 
+            return _showDisjunct;
+        }
+        set { 
+            _showDisjunct = value;
+            OnPropertyChanged("ShowDisjunct");
+        }
+    }
 
     public CompareResultModel()
     {
