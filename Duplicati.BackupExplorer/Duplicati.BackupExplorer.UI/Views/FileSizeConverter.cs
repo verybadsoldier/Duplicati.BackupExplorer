@@ -12,7 +12,6 @@ namespace Duplicati.BackupExplorer.UI.Views
     using Avalonia;
     using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
     using System.IO;
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
 
     public class FileSizeConverter : IValueConverter
     {

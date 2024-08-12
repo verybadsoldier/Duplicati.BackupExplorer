@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls;
+﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Selection;
 using Avalonia.Platform.Storage;
@@ -7,8 +8,9 @@ using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
 using Duplicati.BackupExplorer.UI.Views;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualBasic;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -142,11 +144,6 @@ public partial class MainViewModel : ViewModelBase
     public void SelectLeftSide(object? sender)
     {
         SelectSide(sender, true);
-    }
-
-    public bool CanSelectLeftSide(object? sender)
-    {
-        return true;
     }
 
     public void SelectRightSide(object? sender)
@@ -288,7 +285,7 @@ public partial class MainViewModel : ViewModelBase
         public Dictionary<string, FsEntry> Folder { get; set; }
     }
 
-    public async void SelectDatabase()
+    public async void SelectDatabase(Window parent)
     {
         var storageFile = await DoOpenFilePickerAsync();
         if (storageFile == null) return;
@@ -300,48 +297,45 @@ public partial class MainViewModel : ViewModelBase
         }
         else
         {
-            _loadProjectCancellation = new CancellationTokenSource();
-
-            LoadButtonLabel = "Cancel";
-
-
-            Backups.Clear();
-
-            ShowProgressBar(true);
-
             try
             {
-                await Task.Run(LoadBackups);
-            }
-            catch (OperationCanceledException ex)
-            {
-                //
-            }
-            finally
-            {
-                LoadButtonEnabled = true;
-                ShowProgressBar(false);
-                LoadButtonLabel = "Load";
-                _loadProjectCancellation.Dispose();
-                _loadProjectCancellation = null;
+                _loadProjectCancellation = new CancellationTokenSource();
 
+                LoadButtonLabel = "Cancel";
+
+
+                Backups.Clear();
+
+                ShowProgressBar(true);
+
+                try
+                {
+                    await Task.Run(LoadBackups);
+                }
+                catch (OperationCanceledException ex)
+                {
+                    //
+                }
+                finally
+                {
+                    LoadButtonEnabled = true;
+                    ShowProgressBar(false);
+                    LoadButtonLabel = "Load";
+                    _loadProjectCancellation.Dispose();
+                    _loadProjectCancellation = null;
+
+                }
             }
+            catch {
+                var box = MessageBoxManager.GetMessageBoxStandard("Error opening Database", "An error when trying to load the Duplicati database file", ButtonEnum.Ok);
+                await box.ShowAsPopupAsync(parent);
+            }
+
         }
     }
 
     private async Task<IStorageFile?> DoOpenFilePickerAsync()
     {
-        // For learning purposes, we opted to directly get the reference
-        // for StorageProvider APIs here inside the ViewModel. 
-
-        // For your real-world apps, you should follow the MVVM principles
-        // by making service classes and locating them with DI/IoC.@
-
-        // See IoCFileOps project for an example of how to accomplish this.
-        /*if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
-            desktop.MainWindow?.StorageProvider is not { } provider)
-            throw new NullReferenceException("Missing StorageProvider instance.");
-        */
         var files = await _provider.OpenFilePickerAsync(new FilePickerOpenOptions()
         {
             Title = "Open Text File",
