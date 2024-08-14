@@ -20,12 +20,11 @@
 
     public class DuplicatiDatabase : IDisposable
     {
-        private string _filepath;
-        private SqliteConnection _conn;
+        private SqliteConnection? _conn;
         private Dictionary<BlocksetID, List<BlockID>> _blocklistIdCache = new Dictionary<BlocksetID, List<BlockID>>();
         private Dictionary<BlockID, SizeBytes> _blocksizesCache = new Dictionary<BlockID, SizeBytes>();
         private bool _disposed = false;
-        private List<File>? _filesCache = null;
+        private List<File> _filesCache = new List<File>();
         private Dictionary<BlockID, Block>? _blocksCache = null;
         private Dictionary<BlocksetID, HashSet<Block>>? _blocksetCache = null;
 
@@ -34,17 +33,14 @@
 
         public void Open(string filepath)
         {
-            _filepath = filepath;
-            if (!System.IO.File.Exists(_filepath))
+            if (!System.IO.File.Exists(filepath))
             {
-                Console.WriteLine($"Database file {_filepath} does not exist.");
+                Console.WriteLine($"Database file {filepath} does not exist.");
                 Environment.Exit(1);
             }
 
-            _conn = OpenInMemory(_filepath);
+            _conn = OpenInMemory(filepath);
 
-            //_conn = new SqliteConnection($"Data Source={_filepath}");
-            //_conn.Open();
             InitFilesCache();
             InitBlocksCache();
             InitBlocksetCache();
@@ -70,8 +66,17 @@
             }
         }
 
+        private void CheckConnection()
+        {
+            if (_conn == null)
+                throw new Exception("No Database connection");
+        }
+
         public List<Tuple<string, string>> GetFileVersionsAi(string filename)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT DISTINCT 
@@ -102,6 +107,9 @@
 
         public List<Tuple<int, string, int>> GetFileVersions(string filename)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -151,6 +159,9 @@
 
         public List<Tuple<int, long>> GetBackups()
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -173,6 +184,9 @@
 
         public Tuple<string, int> GetOperationById(OperationID operationId)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -192,6 +206,9 @@
 
         public List<Tuple<OperationID, VolumeID, bool, int>> GetOperationsByFilesetID(FilesetID filesetID)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -214,6 +231,9 @@
 
         public Fileset GetFilesetByOperationId(OperationID operationId)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -237,6 +257,9 @@
 
         public Fileset GetFilesetForOperation(OperationID operationId)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -258,6 +281,9 @@
 
         public List<FilesetID> GetFilesetsByFileId(FileID fileId)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -285,6 +311,9 @@
 
         private List<Fileset> GetFilesetsRaw()
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -312,6 +341,9 @@
 
         public List<FilesetEntry> GetFilesetEntriesById(long filesetId)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -334,6 +366,9 @@
 
         public File GetFileById(long fileId)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
                 SELECT
@@ -353,6 +388,9 @@
 
         public IEnumerable<File> GetFilesByIds(IEnumerable<long> fileIds)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             foreach (var fileId in fileIds)
             {
                 using var cmd = _conn.CreateCommand();
@@ -377,6 +415,9 @@
 
         public IEnumerable<File> GetFilesByIds2(IEnumerable<long> fileIds)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
                 SELECT
@@ -410,9 +451,11 @@
             return list;
         }
 
-
         public void InitFilesCache()
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
                 SELECT
@@ -435,6 +478,9 @@
 
         public void InitBlocksCache()
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -454,6 +500,8 @@
 
         public void InitBlocksetCache()
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
 
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
@@ -481,6 +529,9 @@
 
         public List<File> GetFilesByIds3(IEnumerable<long> fileIds)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
                 SELECT
@@ -504,6 +555,9 @@
 
         public List<Tuple<int, int, string, string>> GetFilesByPath(string prefix, string filename)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
                 SELECT
@@ -528,6 +582,9 @@
 
         async public Task<Block> GetBlock(BlockID blockId)
         {
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
+
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -585,6 +642,9 @@
         public SizeBytes GetBlocksSize(IEnumerable<BlockID> blockIds)
         {
             var blockIdsParameter = string.Join(", ", blockIds);
+
+            if (_conn == null)
+                throw new Exception("No active SQL connection");
 
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = $@"

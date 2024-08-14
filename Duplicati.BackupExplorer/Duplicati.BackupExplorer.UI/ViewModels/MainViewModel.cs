@@ -19,6 +19,7 @@ using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -100,7 +101,7 @@ public partial class MainViewModel : ViewModelBase
         ProgressVisible = show;
     }
 
-    private async void SelectedBackups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    private void SelectedBackups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
         if (SelectedBackups.Count > 0)
         {
@@ -249,6 +250,9 @@ public partial class MainViewModel : ViewModelBase
 
     async public void Compare(object? sender)
     {
+        if (LeftSide == null)
+            throw new Exception("LeftSide not set");
+
         IsProcessing = true;
         ShowProgressBar(true);
      
@@ -278,14 +282,8 @@ public partial class MainViewModel : ViewModelBase
 
     public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged("IsProjectLoaded"); } }
 
-    class FsEntry
-    {
-        public string Name;
 
-        public Dictionary<string, FsEntry> Folder { get; set; }
-    }
-
-    public async void SelectDatabase(Window parent)
+    public async void SelectDatabase(object parent)
     {
         var storageFile = await DoOpenFilePickerAsync();
         if (storageFile == null) return;
@@ -312,9 +310,8 @@ public partial class MainViewModel : ViewModelBase
                 {
                     await Task.Run(LoadBackups);
                 }
-                catch (OperationCanceledException ex)
+                catch (OperationCanceledException)
                 {
-                    //
                 }
                 finally
                 {
@@ -326,9 +323,9 @@ public partial class MainViewModel : ViewModelBase
 
                 }
             }
-            catch {
-                var box = MessageBoxManager.GetMessageBoxStandard("Error opening Database", "An error when trying to load the Duplicati database file", ButtonEnum.Ok);
-                await box.ShowAsPopupAsync(parent);
+            catch(Exception e) {
+                var box = MessageBoxManager.GetMessageBoxStandard("Error opening Database", $"An error occured when trying to load the Duplicati database file '{storageFile}': {e.Message}", ButtonEnum.Ok);
+                await box.ShowAsPopupAsync((Window)parent);
             }
 
         }
@@ -343,33 +340,6 @@ public partial class MainViewModel : ViewModelBase
         });
 
         return files?.Count >= 1 ? files[0] : null;
-    }
-
-    private async Task<string?> OpenFile(CancellationToken token)
-    {
-        //ErrorMessages?.Clear();
-        try
-        {
-            var file = await DoOpenFilePickerAsync();
-            if (file is null) return null;
-
-            // Limit the text file to 1MB so that the demo won't lag.
-            if ((await file.GetBasicPropertiesAsync()).Size <= 1024 * 1024 * 1)
-            {
-                await using var readStream = await file.OpenReadAsync();
-                using var reader = new StreamReader(readStream);
-                return await reader.ReadToEndAsync(token);
-            }
-            else
-            {
-                throw new Exception("File exceeded 1MB limit.");
-            }
-        }
-        catch (Exception e)
-        {
-            throw;
-            //ErrorMessages?.Add(e.Message);
-        }
     }
 
     async Task LoadBackups()

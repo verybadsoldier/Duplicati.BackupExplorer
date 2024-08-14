@@ -38,7 +38,7 @@ namespace Duplicati.BackupExplorer.UI.Views
             return Tuple.Create(floatValue, sizes[order]);
         }
 
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is long longValue)
             {

@@ -26,7 +26,12 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             get
             {
                 if (IsFile)
+                {
+                    if (_fileSize == null)
+                        throw new Exception("_fileSize is null");
+
                     return _fileSize.Value;
+                }
                 else
                 {
                     return Children.Values.OfType<FileNode>().Sum(x => x.NodeSize);
