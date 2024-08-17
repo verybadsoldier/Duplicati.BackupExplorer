@@ -10,9 +10,9 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model
     {
         public long Id { get; set; }
 
-        public string Prefix { get; set; }
+        public string Prefix { get; set; } = string.Empty;
 
-        public string Path { get; set; }
+        public string Path { get; set; } = string.Empty;
 
         public long BlocksetId { get; set; }
 

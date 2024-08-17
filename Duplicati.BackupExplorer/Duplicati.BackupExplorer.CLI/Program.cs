@@ -20,15 +20,6 @@ foreach(var v in backups)
     Console.WriteLine(v);
 }
 
-async void GetBackupSizes()
-{
-    long id1 = 109;
-    long id2 = 114;
-
-    long size1 = await d.GetSizeOfBackup(id1);
-    Console.WriteLine($"Size1: {size1 / 1024 / 1024 / 1024} GiB");
-}
-
 void FindFileVersions()
 {
     var files = d.GetFilesByPath(searchDir, searchFilename);

@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34928.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Duplicati.BackupExplorer.CLI", "Duplicati.BackupExplorer.CLI\Duplicati.BackupExplorer.CLI.csproj", "{CADC2885-1022-4EB7-92DF-6B78F96BCE96}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Duplicati.BackupExplorer.LocalDatabaseAccess", "Duplicat.BackupExplorer.LocalDatabaseAccess\Duplicati.BackupExplorer.LocalDatabaseAccess.csproj", "{525E21BF-874E-4541-8042-A547878FD6C9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Duplicati.BackupExplorer.UI", "Duplicati.BackupExplorer.UI\Duplicati.BackupExplorer.UI.csproj", "{C6E41540-6728-4B3F-8805-91D48D9DED8D}"
@@ -18,18 +16,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C4E09712-9
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Duplicati.BackupExplorer.LocalDatabaseAccess.Test", "Duplicati.BackupExplorer.LocalDatabaseAccess.Test\Duplicati.BackupExplorer.LocalDatabaseAccess.Test.csproj", "{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncContetTest", "SyncContetTest\SyncContetTest.csproj", "{0020FBD7-F14A-441E-9040-D6E022E6C9AF}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CADC2885-1022-4EB7-92DF-6B78F96BCE96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CADC2885-1022-4EB7-92DF-6B78F96BCE96}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CADC2885-1022-4EB7-92DF-6B78F96BCE96}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CADC2885-1022-4EB7-92DF-6B78F96BCE96}.Release|Any CPU.Build.0 = Release|Any CPU
 		{525E21BF-874E-4541-8042-A547878FD6C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{525E21BF-874E-4541-8042-A547878FD6C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{525E21BF-874E-4541-8042-A547878FD6C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -46,10 +38,6 @@ Global
 		{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{06E1D1F6-EED9-4386-AEC7-F3D7544826E7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0020FBD7-F14A-441E-9040-D6E022E6C9AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

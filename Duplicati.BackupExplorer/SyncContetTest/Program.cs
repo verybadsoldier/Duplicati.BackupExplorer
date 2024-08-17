@@ -9,13 +9,6 @@
             Console.WriteLine("AsycSub finished");
         }
 
-        static void GetVal()
-        {
-            int i;
-            i = 5;
-            return;
-        }
-
         static double DoCalc()
         {
             double g = 0;

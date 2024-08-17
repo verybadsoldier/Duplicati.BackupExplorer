@@ -19,7 +19,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model
 
         public DateTimeOffset Timestamp { get; set; }
 
-        public FileTree FileTree { get; set; }
+        public FileTree FileTree { get; set; } = new FileTree();
 
         override public String ToString()
         {

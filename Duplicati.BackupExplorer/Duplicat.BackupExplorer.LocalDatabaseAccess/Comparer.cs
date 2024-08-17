@@ -11,21 +11,17 @@ using static System.Reflection.Metadata.BlobBuilder;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 {
-    public class Comparer
+    public class Comparer(DuplicatiDatabase database)
     {
-        private readonly DuplicatiDatabase _database;
-
-        public Comparer(DuplicatiDatabase database) { _database = database; }
+        private readonly DuplicatiDatabase _database = database;
 
         public delegate void BlocksCompareFinished ();
 
-        public event BlocksCompareFinished OnBlocksCompareFinished;
+        public event BlocksCompareFinished? OnBlocksCompareFinished;
 
         async public Task<HashSet<Block>> GetBlockIdsForFileset(Fileset fs)
         {
             List<FilesetEntry> fsEntries = _database.GetFilesetEntriesById(fs.Id);
-
-            HashSet<long> allBlockIds = new HashSet<long>();
 
             var files = fsEntries.Select(x => _database.GetFileById(x.FileId)).ToList();
             var blockIds = files.SelectMany(x => _database.GetBlockIdsByBlocksetId(x.BlocksetId));
@@ -46,19 +42,18 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
             return CalculateResults(blocks1, blocks2, blocks2.Sum(x => x.Size));
         }
 
-        private CompareResult CalculateResults(HashSet<Block> leftBlocks, HashSet<Block> rightBlocks, long rightSize)
+        private static CompareResult CalculateResults(HashSet<Block> leftBlocks, HashSet<Block> rightBlocks, long rightSize)
         {
             var leftSize = leftBlocks.Sum(x => x.Size);
 
             // Create a copy of set1 to preserve the original
-            HashSet<Block> shared = new HashSet<Block>(leftBlocks);
+            var shared = new HashSet<Block>(leftBlocks);
 
             // Modify the copy to contain only elements also in set2
             shared.IntersectWith(rightBlocks);
 
             // The count of the intersection set is the number of common elements
             long sizeIntersect = shared.Sum(x => x.Size);
-            long commonElementCount = shared.Count;
 
             var result = new CompareResult { 
                 LeftNumBlocks = leftBlocks.Count,
@@ -87,6 +82,9 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
             {
                 foreach (var rightFs in rightF.GetFileNodes())
                 {
+                    if (!rightFs.BlocksetId.HasValue)
+                        throw new InvalidOperationException($"File {rightFs.FullPath} has no blockset ID");
+
                     var f = _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value);
                     blockIds.UnionWith(f);
                 }
@@ -95,17 +93,18 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
             rightBlocks.AddRange(await _database.GetBlocks(blockIds));
 
             var rightSet = new HashSet<Block>(rightBlocks);
-            await CompareFiletreeWithBlocks(left, rightSet);
+            await Task.Run(() => CompareFiletreeWithBlocks(left, rightSet));
         }
 
-        async public Task CompareFiletreeWithBlocks(FileTree left, HashSet<Block> rightBlocks)
+        public void CompareFiletreeWithBlocks(FileTree left, HashSet<Block> rightBlocks)
         {
             var rightSizeSum = rightBlocks.Sum(x => x.Size);
 
             foreach (var node in left.GetFileNodes())
             {
-                //var blockIds = this._database.GetBlockIdsByBlocksetId(node.BlocksetId.Value);
-                //var blocks = await this._database.GetBlocks(blockIds);
+                if (!node.BlocksetId.HasValue)
+                    throw new InvalidOperationException($"File {node.FullPath} has no blockset ID");
+
                 var blocks = _database.GetBlocksByBlocksetId(node.BlocksetId.Value);
 
                 var result = CalculateResults(blocks, rightBlocks, rightSizeSum);

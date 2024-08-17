@@ -10,16 +10,16 @@ using System.ComponentModel;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 {
-    public class FileNode
+    public class FileNode(string name, long? fileSize)
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = name;
         public FileNode? Parent { get; set; }
         public bool IsFile { get; set; } = false;
         public long? BlocksetId { get; set; }
         public CompareResult? CompareResult { get; set; }
-        public OrderedDictionary Children { get; set; } = new OrderedDictionary();
+        public OrderedDictionary Children { get; set; } = [];
 
-        private long? _fileSize;
+        private readonly long? _fileSize = fileSize;
 
         public long NodeSize
         {
@@ -28,7 +28,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
                 if (IsFile)
                 {
                     if (_fileSize == null)
-                        throw new Exception("_fileSize is null");
+                        throw new InvalidOperationException("_fileSize is null");
 
                     return _fileSize.Value;
                 }
@@ -37,12 +37,6 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
                     return Children.Values.OfType<FileNode>().Sum(x => x.NodeSize);
                 }
             }
-        }
-
-        public FileNode(string name, long? fileSize)
-        {
-            Name = name;
-            _fileSize = fileSize;
         }
 
         public void AddChild(FileNode child)
@@ -60,9 +54,14 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public void MergeCompareResult(CompareResult compareResult)
         {
-            foreach (FileNode child in Children.Values) {
+            foreach (FileNode child in Children.Values)
+            {
                 if (child.IsFile)
                 {
+                    if (child.CompareResult == null)
+                    {
+                        throw new InvalidOperationException("File has no CompareResult");
+                    }
                     compareResult.LeftNumBlocks += child.CompareResult.LeftNumBlocks;
                     compareResult.LeftSize += child.CompareResult.LeftSize;
                     compareResult.SharedSize += child.CompareResult.SharedSize;
@@ -84,9 +83,9 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             CompareResult = new CompareResult();
 
             MergeCompareResult(CompareResult);
-        }   
+        }
 
-        public IEnumerable<FileNode> GetChildrensRecursive(bool filesOnly=true)
+        public IEnumerable<FileNode> GetChildrensRecursive(bool filesOnly = true)
         {
             if (!filesOnly || IsFile)
             {
@@ -111,7 +110,9 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             }
         }
 
-        public string FullPath { get
+        public string FullPath
+        {
+            get
             {
                 string text = "";
                 if (Parent != null && Parent.Parent != null)
@@ -129,10 +130,12 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
     }
 
     public class FileTree
-    {                                    
-        public ObservableCollection<FileNode> Nodes { get; set; } = new ObservableCollection<FileNode>();
-        
+    {
+        public ObservableCollection<FileNode> Nodes { get; set; } = [];
+
         public string? Name { get; set; }
+
+        private static readonly char[] separator = ['\\', '/'];
 
         public FileTree()
         {
@@ -147,7 +150,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
                 return "<NoName>";
         }
 
-        public IEnumerable<FileNode> GetFileNodes(bool filesOnly=true)
+        public IEnumerable<FileNode> GetFileNodes(bool filesOnly = true)
         {
             foreach (var item in Nodes[0].GetChildrensRecursive(filesOnly))
             {
@@ -155,9 +158,9 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             }
         }
 
-        public FileNode AddPath(string filePath, long blocksetId, long? size=null)
+        public FileNode AddPath(string filePath, long blocksetId, long? size = null)
         {
-            var parts = filePath.Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = filePath.Split(separator, StringSplitOptions.RemoveEmptyEntries);
             var current = Nodes[0];
 
             for (int i = 0; i < parts.Length; i++)
@@ -168,8 +171,10 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
                 if (child == null)
                 {
-                    child = new FileNode(part, size.GetValueOrDefault());
-                    child.Parent = current;
+                    child = new FileNode(part, size.GetValueOrDefault())
+                    {
+                        Parent = current
+                    };
 
                     current.AddChild(child);
                 }
@@ -184,7 +189,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
                     {
                         child.IsFile = true;
                     }
-                    
+
                     child.BlocksetId = blocksetId;
                 }
             }
@@ -193,7 +198,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public void UpdateDirectoryCompareResults()
         {
-            foreach(var item in Nodes[0].GetChildrensRecursive(false))
+            foreach (var item in Nodes[0].GetChildrensRecursive(false))
             {
                 item.UpdateDirectoryCompareResult();
             }

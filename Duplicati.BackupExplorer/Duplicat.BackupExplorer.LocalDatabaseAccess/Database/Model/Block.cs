@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model
 {
-    public class Block : IEquatable<Block>
+    public class Block
     {
         public long Id { get; set; }
 
@@ -15,9 +15,15 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model
 
         public long VolumeId { get; set; }
 
-        public bool Equals(Block p)
+
+        public override bool Equals(object? obj)
         {
-            return p != null && Id == p.Id;
+            if (obj == null) return false;
+            if (obj is Block block)
+            {
+                return Id == block.Id;
+            }
+            return false;
         }
 
         public override int GetHashCode()

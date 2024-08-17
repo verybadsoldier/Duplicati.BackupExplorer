@@ -18,7 +18,7 @@ namespace Duplicati.BackupExplorer.UI.Views
 
         static public Tuple<float, string> CalculateNumeric(long longValue, string? unit = null)
         {
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            string[] sizes = ["B", "KB", "MB", "GB", "TB"];
             int order = 0;
 
             float floatValue = longValue;
@@ -26,7 +26,7 @@ namespace Duplicati.BackupExplorer.UI.Views
                 while (floatValue >= 1024 && order < sizes.Length - 1)
                 {
                     order++;
-                    floatValue = floatValue / 1024;
+                    floatValue /= 1024;
                 }
             }
             else
@@ -51,7 +51,7 @@ namespace Duplicati.BackupExplorer.UI.Views
             return AvaloniaProperty.UnsetValue;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             return AvaloniaProperty.UnsetValue;
         }

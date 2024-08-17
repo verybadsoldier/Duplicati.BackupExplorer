@@ -16,7 +16,7 @@
     <Grid ColumnDefinitions="Auto,1*,Auto" DockPanel.Dock="Top">
       <Label Grid.Column="0" Margin="0,3,0,0">Database:</Label>
       <TextBox Grid.Column="1" Text="{Binding ProjectFilename}" Margin="0,0,10,0" IsEnabled="False"></TextBox>
-      <Button Grid.Column="2" Background="Green" Command="{Binding SelectDatabase}" CommandParameter="{Binding $parent[Window]}">Select Database</Button>
+      <Button Grid.Column="2" Background="Green" Command="{Binding SelectDatabase}" CommandParameter="{Binding $parent[Window]}" Content="{Binding LoadButtonLabel}" />
     </Grid>
 
     <Grid DockPanel.Dock="Left" RowDefinitions="Auto,1*">

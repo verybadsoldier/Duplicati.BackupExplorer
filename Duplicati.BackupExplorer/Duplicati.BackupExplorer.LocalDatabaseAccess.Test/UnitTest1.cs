@@ -18,8 +18,10 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Test
             ft.AddPath(@"C:\Temp", 1);
             ft.AddPath(@"C:\Windows", 1);
 
-            var root = (FileNode)ft.Nodes[0];
-            var cNode = (FileNode)root.Children[0];
+            var root = ft.Nodes[0];
+
+            var c0 = root.Children[0] ?? throw new InvalidOperationException("Children is null");
+            var cNode = (FileNode)c0;
             Assert.IsTrue(cNode.Name == @"C:");
         }
     }

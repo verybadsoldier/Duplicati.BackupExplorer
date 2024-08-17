@@ -31,12 +31,9 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow();
 
-            var storageProvider = ((TopLevel)desktop.MainWindow).StorageProvider;
-
             if (desktop.MainWindow?.StorageProvider is not { } provider)
-                throw new NullReferenceException("Missing StorageProvider instance.");
+                throw new InvalidOperationException("Missing StorageProvider instance.");
 
-            //((MainViewModel)desktop.MainWindow.DataContext).SetProvider(provider);
             desktop.MainWindow.DataContext = new MainViewModel(db, comparer, provider);
 
         }
@@ -45,7 +42,8 @@ public partial class App : Application
             var wnd = new MainView();
             singleViewPlatform.MainView = wnd;
 
-            wnd.DataContext = new MainViewModel(db, comparer, TopLevel.GetTopLevel(wnd).StorageProvider);
+            var topLevel = TopLevel.GetTopLevel(wnd) ?? throw new InvalidOperationException("No TopLevel");
+            wnd.DataContext = new MainViewModel(db, comparer, topLevel.StorageProvider);
         }
 
         base.OnFrameworkInitializationCompleted();

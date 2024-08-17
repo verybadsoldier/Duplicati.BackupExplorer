@@ -28,18 +28,32 @@ public partial class CompareResultModel : ViewModelBase
 
     private bool _showDisjunct = false;
 
-    public FileTree? LeftSide { get { return _leftSide; } set { _leftSide = value; OnPropertyChanged("LeftSide"); } }
-    public string RightSideName { get { return _rightSideName; } set { _rightSideName = value; OnPropertyChanged("RightSideName"); } }
+    public FileTree? LeftSide { get { return _leftSide; } set { _leftSide = value; OnPropertyChanged(nameof(LeftSide)); } }
+    public string RightSideName {
+        get {
+            if (_rightSideName == null) {
+                throw new InvalidOperationException("No right side name set");
+            }
+            return _rightSideName;
+        }
+        set
+        {
+            _rightSideName = value;
+            OnPropertyChanged(nameof(RightSideName));
+        }
+    }
+
     public bool ShowDisjunct { 
         get { 
             return _showDisjunct;
         }
         set { 
             _showDisjunct = value;
-            OnPropertyChanged("ShowDisjunct");
+            OnPropertyChanged(nameof(ShowDisjunct));
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S1075:URIs should not be hardcoded", Justification = "<Pending>")]
     public CompareResultModel()
     {
         FileTree = new FileTree();

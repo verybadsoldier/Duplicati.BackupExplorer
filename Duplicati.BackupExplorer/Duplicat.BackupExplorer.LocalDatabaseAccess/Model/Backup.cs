@@ -9,11 +9,18 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 {
     public class Backup
     {
-        public Fileset Fileset { get; set; }
+        public Fileset Fileset { get; set; } = new Fileset();
 
         public FileTree? FileTree { get; set; }
 
-        public long Size {  get { return ((FileNode)FileTree.Nodes[0]).NodeSize; } }
+        public long Size {  get {
+                if (FileTree is null)
+                {
+                    throw new InvalidOperationException("FileTree is null");
+                }
+                return(FileTree.Nodes[0]).NodeSize;
+            }
+        }
 
         public override string ToString()
         {

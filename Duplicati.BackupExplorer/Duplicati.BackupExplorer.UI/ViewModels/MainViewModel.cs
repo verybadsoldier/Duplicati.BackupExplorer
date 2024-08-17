@@ -44,9 +44,9 @@ public class FileSystemItem
 
 public partial class MainViewModel : ViewModelBase
 {
-    private DuplicatiDatabase _database;
+    private readonly DuplicatiDatabase _database;
 
-    private Comparer _comparer;
+    private readonly Comparer _comparer;
 
     private IStorageProvider _provider;
 
@@ -60,38 +60,42 @@ public partial class MainViewModel : ViewModelBase
 
         ProjectFilename = "D:\\duplicati.sqlite";
 
-        items = new ObservableCollection<string> { "asd", "fsg" };
+        Items = ["asd", "fsg"];
 
 
         SelectedBackups.CollectionChanged += SelectedBackups_CollectionChanged;
     }
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     public MainViewModel()
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
-        if (Design.IsDesignMode)
+        if (!Design.IsDesignMode)
         {
-            ProjectFilename = @"D:\Duplicati\database.sqlite";
-            Backups = new ObservableCollection<Backup> {
-                new Backup {Fileset = new Fileset { Id = 1, Timestamp = new System.DateTimeOffset(2021, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=1 }},
-                new Backup {Fileset = new Fileset { Id = 2, Timestamp = new System.DateTimeOffset(2022, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=2 }},
-            };
-            items = new ObservableCollection<string> { "asd", "fsg" };
-
-            var ft = new FileTree();
-
-            ft.AddPath(@"C:\Temp\MyFile.cs", 1542351123);
-            ft.AddPath(@"C:\Temp\MyFile2.cs", 3399293492);
-            ft.AddPath(@"C:\Windows", 1);
-            ft.AddPath(@"D:\MyDir\MyFile3.cs", 5399293492);
-
-            //ft.UpdateDirectoryCompareResults();
-
-            FileTree = ft;
-
-            LeftSide = new FileTree();
-
-            RightSide = new FileTree();
+            throw new InvalidOperationException("Constructor only for designer");
         }
+
+        ProjectFilename = @"D:\Duplicati\database.sqlite";
+        Backups = [
+            new() {Fileset = new Fileset { Id = 1, Timestamp = new System.DateTimeOffset(2021, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=1 }},
+            new() {Fileset = new Fileset { Id = 2, Timestamp = new System.DateTimeOffset(2022, 12, 1, 12, 14, 55, System.TimeSpan.Zero), VolumeId=2 }},
+        ];
+        Items = ["asd", "fsg"];
+
+        var ft = new FileTree();
+
+#pragma warning disable S1075 // URIs should not be hardcoded
+        ft.AddPath(@"C:\Temp\MyFile.cs", 1542351123);
+        ft.AddPath(@"C:\Temp\MyFile2.cs", 3399293492);
+        ft.AddPath(@"C:\Windows", 1);
+        ft.AddPath(@"D:\MyDir\MyFile3.cs", 5399293492);
+#pragma warning restore S1075 // URIs should not be hardcoded
+
+        FileTree = ft;
+
+        LeftSide = new FileTree();
+
+        RightSide = new FileTree();
     }
 
     private void ShowProgressBar(bool show)
@@ -105,7 +109,11 @@ public partial class MainViewModel : ViewModelBase
     {
         if (SelectedBackups.Count > 0)
         {
-            var backup = SelectedBackups[SelectedBackups.Count - 1];
+            var backup = SelectedBackups[0];
+            if (backup.FileTree == null)
+            {
+                throw new InvalidOperationException("No FileTree in backup");
+            }
             FileTree = backup.FileTree;
         }
     }
@@ -115,32 +123,32 @@ public partial class MainViewModel : ViewModelBase
         _provider = provider;
     }
 
-    private FileTree _fileTree = new FileTree();
+    private FileTree _fileTree = new();
 
-    public FileTree FileTree { get { return _fileTree; } set { _fileTree = value; OnPropertyChanged("FileTree"); } }
+    public FileTree FileTree { get { return _fileTree; } set { _fileTree = value; OnPropertyChanged(nameof(FileTree)); } }
 
-    public ObservableCollection<string> items { get; set; }
+    public ObservableCollection<string> Items { get; set; }
 
     private string _loadButtonLabel = "Load";
     private bool _progressVisible = false;
     private double _progress = 0;
     private string _progressTextFormat = "";
 
-    private string _projectFilename;
-    public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged("ProjectFilename"); } }
+    private string _projectFilename = "";
+    public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged(nameof(ProjectFilename)); } }
 
-    public long? _allBackupsSize;
-    public long? AllBackupsSize { get { return _allBackupsSize; } set { _allBackupsSize = value; OnPropertyChanged("AllBackupsSize"); } }
+    private long? _allBackupsSize;
+    public long? AllBackupsSize { get { return _allBackupsSize; } set { _allBackupsSize = value; OnPropertyChanged(nameof(AllBackupsSize)); } }
 
-    public ObservableCollection<Backup> Backups { get; set; } = new ObservableCollection<Backup>();
+    public ObservableCollection<Backup> Backups { get; set; } = [];
 
-    public ObservableCollection<Backup> SelectedBackups { get; set; } = new ObservableCollection<Backup>();
+    public ObservableCollection<Backup> SelectedBackups { get; set; } = [];
 
-    public string LoadButtonLabel { get { return _loadButtonLabel; } set { _loadButtonLabel = value; OnPropertyChanged("LoadButtonLabel"); } }
+    public string LoadButtonLabel { get { return _loadButtonLabel; } set { _loadButtonLabel = value; OnPropertyChanged(nameof(LoadButtonLabel)); } }
 
-    public bool ProgressVisible { get { return _progressVisible; } set { _progressVisible = value; OnPropertyChanged("ProgressVisible"); } }
-    public double Progress { get { return _progress; } set { _progress = value; OnPropertyChanged("Progress"); } }
-    public string ProgressTextFormat { get { return _progressTextFormat; } set { _progressTextFormat = value; OnPropertyChanged("ProgressTextFormat"); } }
+    public bool ProgressVisible { get { return _progressVisible; } set { _progressVisible = value; OnPropertyChanged(nameof(ProgressVisible)); } }
+    public double Progress { get { return _progress; } set { _progress = value; OnPropertyChanged(nameof(Progress)); } }
+    public string ProgressTextFormat { get { return _progressTextFormat; } set { _progressTextFormat = value; OnPropertyChanged(nameof(ProgressTextFormat)); } }
 
     public void SelectLeftSide(object? sender)
     {
@@ -155,16 +163,21 @@ public partial class MainViewModel : ViewModelBase
     private FileTree? _leftSide = null;
     private FileTree? _rightSide = null;
 
-    public FileTree? LeftSide {  get { return _leftSide; } set { _leftSide = value; OnPropertyChanged("LeftSide"); } }
-    public FileTree? RightSide { get { return _rightSide; } set { _rightSide = value; OnPropertyChanged("RightSide"); } }
+    private CancellationTokenSource? _loadProjectCancellation;
+
+    private bool _isLoadingDatabase = false;
+
+    public bool IsLoadingDatabase { get { return _isLoadingDatabase; } set { _isLoadingDatabase = value; OnPropertyChanged(nameof(IsLoadingDatabase)); } }
+
+    public FileTree? LeftSide {  get { return _leftSide; } set { _leftSide = value; OnPropertyChanged(nameof(LeftSide)); } }
+    public FileTree? RightSide { get { return _rightSide; } set { _rightSide = value; OnPropertyChanged(nameof(RightSide)); } }
 
     private FileTree GetFileTreeFromSelection(object? selection)
     {
         FileTree? ft = null;
 
-        if (selection is TreeView)
+        if (selection is TreeView tree)
         {
-            TreeView tree = (TreeView)selection;
             if (tree.SelectedItem != null)
             {
                 var file = (FileNode)tree.SelectedItem;
@@ -179,11 +192,11 @@ public partial class MainViewModel : ViewModelBase
                 }
             }
         }
-        else if (selection is ListBox)
+        else if (selection is ListBox box)
         {
             ft = new FileTree();
 
-            ListBox listbox = (ListBox)selection;
+            ListBox listbox = box;
 
             if (listbox.SelectedItem != null)
             {
@@ -191,6 +204,12 @@ public partial class MainViewModel : ViewModelBase
                 ft = backup.FileTree;
             }
         }
+
+        if (ft == null)
+        {
+            throw new InvalidOperationException("FileTree is null");
+        }
+
         return ft;
     }
 
@@ -212,17 +231,11 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    public bool CanCompare(object? sender)
-    {
-        return true;
-        //return LeftSide != null && RightSide != null; 
-    }
-
     private bool _isProcessing = false;
 
-    public bool IsProcessing { get { return _isProcessing; } set { _isProcessing = value; OnPropertyChanged("IsProcessing"); } }
+    public bool IsProcessing { get { return _isProcessing; } set { _isProcessing = value; OnPropertyChanged(nameof(IsProcessing)); } }
 
-    async public void CompareToAll(object? sender)
+    async public Task CompareToAll(object? sender)
     {      
         IsProcessing = true;
         ShowProgressBar(true);
@@ -234,13 +247,20 @@ public partial class MainViewModel : ViewModelBase
             Progress += progressStep;
         };
 
-
         Progress = 5;
-        await Task.Run(() => _comparer.CompareFiletrees(ftLeft, Backups.Select(x => x.FileTree).Where(x => x != ftLeft)));
+
+        if (Backups.Any(x => x.FileTree is null))
+            throw new InvalidOperationException("Found Backup with null FileTree");
+
+        await Task.Run(() => _comparer.CompareFiletrees(ftLeft, Backups.Select(x => x.FileTree!).Where(x => x != ftLeft)));
+
         ftLeft.UpdateDirectoryCompareResults();
 
-        var dialog = new CompareResultWindow() { Title = $"Comparison Result - {ftLeft.Name} <-> All" };
-        dialog.DataContext = new CompareResultModel() { FileTree = ftLeft, LeftSide = ftLeft, RightSideName = "All Backups" };
+        var dialog = new CompareResultWindow
+        {
+            Title = $"Comparison Result - {ftLeft.Name} <-> All",
+            DataContext = new CompareResultModel() { FileTree = ftLeft, LeftSide = ftLeft, RightSideName = "All Backups" }
+        };
 
         dialog.Show();
 
@@ -248,10 +268,14 @@ public partial class MainViewModel : ViewModelBase
         ShowProgressBar(false);
     }
 
-    async public void Compare(object? sender)
+    async public Task Compare(object? _)
     {
         if (LeftSide == null)
-            throw new Exception("LeftSide not set");
+            throw new InvalidOperationException("LeftSide not set");
+        if (RightSide == null)
+            throw new InvalidOperationException("RightSide not set");
+        if (RightSide.Name == null)
+            throw new InvalidOperationException("RightSide name not set");
 
         IsProcessing = true;
         ShowProgressBar(true);
@@ -265,8 +289,11 @@ public partial class MainViewModel : ViewModelBase
         await Task.Run(() => _comparer.CompareFiletree(LeftSide, RightSide));
         LeftSide.UpdateDirectoryCompareResults();
 
-        var dialog = new CompareResultWindow() { Title = $"Comparison Result - {LeftSide.Name} <-> {RightSide.Name}" };
-        dialog.DataContext = new CompareResultModel() { FileTree=LeftSide, LeftSide=LeftSide, RightSideName=RightSide.Name};
+        var dialog = new CompareResultWindow
+        {
+            Title = $"Comparison Result - {LeftSide.Name} <-> {RightSide.Name}",
+            DataContext = new CompareResultModel() { FileTree = LeftSide, LeftSide = LeftSide, RightSideName = RightSide.Name }
+        };
 
         dialog.Show();
 
@@ -276,58 +303,69 @@ public partial class MainViewModel : ViewModelBase
 
     private bool _isCompareElementsSelected = false;
 
-    public bool IsCompareElementsSelected { get { return _isCompareElementsSelected; } set { _isCompareElementsSelected = value; OnPropertyChanged("IsCompareElementsSelected"); } }
+    public bool IsCompareElementsSelected { get { return _isCompareElementsSelected; } set { _isCompareElementsSelected = value; OnPropertyChanged(nameof(IsCompareElementsSelected)); } }
 
     private bool _isProjectLoaded = false;
 
-    public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged("IsProjectLoaded"); } }
+    public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged(nameof(IsProjectLoaded)); } }
 
 
-    public async void SelectDatabase(object parent)
+    public async Task SelectDatabase(object parent)
     {
-        var storageFile = await DoOpenFilePickerAsync();
-        if (storageFile == null) return;
-        ProjectFilename = storageFile.Path.AbsolutePath;
-        if (_loadProjectCancellation != null)
+        if (IsLoadingDatabase)
         {
-            _loadProjectCancellation.Cancel();
-            LoadButtonEnabled = false;
+            if (_loadProjectCancellation is null)
+                throw new InvalidOperationException("Cancellation is null");
+
+            await _loadProjectCancellation.CancelAsync();
+            IsLoadingDatabase = false;
         }
         else
         {
+            var storageFile = await DoOpenFilePickerAsync();
+            if (storageFile == null) return;
+
+
             try
             {
-                _loadProjectCancellation = new CancellationTokenSource();
-
-                LoadButtonLabel = "Cancel";
-
-
-                Backups.Clear();
-
-                ShowProgressBar(true);
-
-                try
+                using (_loadProjectCancellation = new CancellationTokenSource())
                 {
-                    await Task.Run(LoadBackups);
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                finally
-                {
-                    LoadButtonEnabled = true;
-                    ShowProgressBar(false);
-                    LoadButtonLabel = "Load";
-                    _loadProjectCancellation.Dispose();
-                    _loadProjectCancellation = null;
+                    ProjectFilename = storageFile.Path.AbsolutePath;
 
+                    LoadButtonLabel = "Cancel";
+                    Backups.Clear();
+
+                    IsLoadingDatabase = true;
+                    ShowProgressBar(true);
+
+                    try
+                    {
+                        await Task.Run(LoadBackups);
+
+                        IsProjectLoaded = true;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        IsProjectLoaded = false;
+                        AllBackupsSize = 0;
+#pragma warning disable S4158 // Empty collections should not be accessed or iterated
+                        Backups.Clear();
+#pragma warning restore S4158 // Empty collections should not be accessed or iterated
+                    }
+                    finally
+                    {
+                        IsLoadingDatabase = false;
+                        ShowProgressBar(false);
+                        LoadButtonLabel = "Load";
+                    }
                 }
             }
-            catch(Exception e) {
+            catch (Exception e)
+            {
+                AllBackupsSize = 0;
                 var box = MessageBoxManager.GetMessageBoxStandard("Error opening Database", $"An error occured when trying to load the Duplicati database file '{storageFile}': {e.Message}", ButtonEnum.Ok);
                 await box.ShowAsPopupAsync((Window)parent);
             }
-
         }
     }
 
@@ -342,7 +380,7 @@ public partial class MainViewModel : ViewModelBase
         return files?.Count >= 1 ? files[0] : null;
     }
 
-    async Task LoadBackups()
+    void LoadBackups()
     {
         Progress = 3;
         ProgressTextFormat = $"Opening database... ({{1:0}} %)";
@@ -356,9 +394,12 @@ public partial class MainViewModel : ViewModelBase
         var progStep = (100 - Progress) / filesets.Count;
 
         AllBackupsSize = 0;
-        HashSet<Block> allBlocks = new HashSet<Block>();
+        HashSet<Block> allBlocks = [];
         foreach (var item in filesets)
         {
+            if (_loadProjectCancellation is null)
+                throw new InvalidOperationException("Cancellation is null");
+
             _loadProjectCancellation.Token.ThrowIfCancellationRequested();
 
 
@@ -372,8 +413,6 @@ public partial class MainViewModel : ViewModelBase
 
             foreach (var file in files)
             {
-                //ProgressTextFormat = $"Loading file {file} ({{1:0}} %)";
-
                 long? fileSize = null;
                 if (file.BlocksetId >= 0)
                 {
@@ -395,14 +434,5 @@ public partial class MainViewModel : ViewModelBase
             AllBackupsSize = allBlocks.Sum(x => x.Size);
             Backups.Add(backup);
         }
-
-        IsProjectLoaded = true;
     }
-
-    private CancellationTokenSource? _loadProjectCancellation;
-
-    private bool _loadButtonEnabled = true;
-
-    public bool LoadButtonEnabled { get { return _loadButtonEnabled; } set { _loadButtonEnabled = value; OnPropertyChanged("LoadButtonEnabled"); } }
-
 }

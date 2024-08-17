@@ -13,7 +13,7 @@ namespace Duplicati.BackupExplorer.UI.Views
 
     public class MultiplyByHundredConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is float doubleValue)
             {
@@ -23,7 +23,7 @@ namespace Duplicati.BackupExplorer.UI.Views
             return AvaloniaProperty.UnsetValue;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is float doubleValue)
             {

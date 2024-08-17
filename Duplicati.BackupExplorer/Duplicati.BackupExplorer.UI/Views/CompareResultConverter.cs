@@ -12,12 +12,9 @@ public class CompareResultConverter : Dictionary<string, IDataTemplate>, IValueC
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value == null)
-        {
-            throw new ArgumentNullException("value");
-        }
+        ArgumentException.ThrowIfNullOrEmpty(nameof(value));
 
-        if (!(bool)value)
+        if (!(bool)value!)
         {
             return this["shared"];
         }
