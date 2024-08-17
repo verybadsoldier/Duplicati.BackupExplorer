@@ -7,6 +7,6 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Duplicati.BackupExplorer.UI.Views.MainWindow"
         Icon="/Assets/lightbulb_on_icon_246339.ico"
-        Title="Duplicati.BackupExplorer.UI">
+        Title="{Binding WindowTitle}">
         <views:MainView />
 </Window>

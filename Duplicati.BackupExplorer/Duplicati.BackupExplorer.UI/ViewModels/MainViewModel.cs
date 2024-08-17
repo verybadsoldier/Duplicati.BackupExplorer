@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Selection;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Duplicati.BackupExplorer.LocalDatabaseAccess;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
@@ -16,10 +17,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
+using System.Formats.Asn1;
 using System.Formats.Tar;
 using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,6 +54,8 @@ public partial class MainViewModel : ViewModelBase
 
     private IStorageProvider _provider;
 
+    public string WindowTitle { get; set; }
+
     public MainViewModel(DuplicatiDatabase database, Comparer comparer, IStorageProvider provider)
     {
         _database = database;
@@ -62,6 +68,8 @@ public partial class MainViewModel : ViewModelBase
 
         Items = ["asd", "fsg"];
 
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown Version";
+        WindowTitle = $"Duplicati BackupExplorer - Version {version}";
 
         SelectedBackups.CollectionChanged += SelectedBackups_CollectionChanged;
     }
@@ -125,11 +133,15 @@ public partial class MainViewModel : ViewModelBase
 
     private FileTree _fileTree = new();
 
+    private IBrush _buttonSelectDatabaseColor = Brushes.Green;
+
+    public IBrush ButtonSelectDatabaseColor { get { return _buttonSelectDatabaseColor; } set { _buttonSelectDatabaseColor = value; OnPropertyChanged(nameof(ButtonSelectDatabaseColor)); } }
+
     public FileTree FileTree { get { return _fileTree; } set { _fileTree = value; OnPropertyChanged(nameof(FileTree)); } }
 
     public ObservableCollection<string> Items { get; set; }
 
-    private string _loadButtonLabel = "Load";
+    private string _loadButtonLabel = "Select Database";
     private bool _progressVisible = false;
     private double _progress = 0;
     private string _progressTextFormat = "";
@@ -333,6 +345,7 @@ public partial class MainViewModel : ViewModelBase
                     ProjectFilename = storageFile.Path.AbsolutePath;
 
                     LoadButtonLabel = "Cancel";
+                    ButtonSelectDatabaseColor = Brushes.Red;
                     Backups.Clear();
 
                     IsLoadingDatabase = true;
@@ -356,7 +369,8 @@ public partial class MainViewModel : ViewModelBase
                     {
                         IsLoadingDatabase = false;
                         ShowProgressBar(false);
-                        LoadButtonLabel = "Load";
+                        LoadButtonLabel = "Select Database";
+                        ButtonSelectDatabaseColor = Brushes.Green;
                     }
                 }
             }
