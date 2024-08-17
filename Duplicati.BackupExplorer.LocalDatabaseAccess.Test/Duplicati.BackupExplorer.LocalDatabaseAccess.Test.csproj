@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Duplicat.BackupExplorer.LocalDatabaseAccess\Duplicati.BackupExplorer.LocalDatabaseAccess.csproj" />
+    <ProjectReference Include="..\Duplicati.BackupExplorer.LocalDatabaseAccess\Duplicati.BackupExplorer.LocalDatabaseAccess.csproj" />
   </ItemGroup>
 
   <ItemGroup>
