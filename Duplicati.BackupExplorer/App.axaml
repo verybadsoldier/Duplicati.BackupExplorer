@@ -1,0 +1,15 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Duplicati.BackupExplorer.App"
+             xmlns:local="clr-namespace:Duplicati.BackupExplorer.Views"
+             RequestedThemeVariant="Default">
+             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+  <Application.Resources>
+    <local:MultiplyByHundredConverter x:Key="MultiplyByHundredConverter" />
+    <local:FileSizeConverter x:Key="FileSizeConverter" />
+    <local:FileSizeSharedConverter x:Key="FileSizeSharedConverter" />
+  </Application.Resources>
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+</Application>

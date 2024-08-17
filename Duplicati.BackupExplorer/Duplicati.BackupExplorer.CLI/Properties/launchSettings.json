@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Duplicati.BackupExplorer.CLI": {
-      "commandName": "Project",
-      "commandLineArgs": "D:\\duplicati.sqlite F:\\Backup\\Dantuin\\ dantuin.zip "
-    }
-  }
-}
