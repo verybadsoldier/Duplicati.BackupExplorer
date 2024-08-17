@@ -2,25 +2,24 @@ name: Build Duplicati BackupExplorer
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        version: [linux, win]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+      - uses: actions/setup-dotnet@v4
+        name: Setup dotnet        
         with:
           dotnet-version: '8.x'
       - name: Display dotnet version
         run: dotnet --version
       - name: Run Tests
         run: dotnet test
-      - name: Build Win64
-        run: |
-          dotnet publish -c Release --os win -o publish_win
-          zip -r Duplicati-BackupExplorer.zip publish_win
-      - name: Build Linux64
-        run: |
-          dotnet publish -c Release --os linux -o publish_linux
-          zip -r Duplicati-BackupExplorer.zip publish_linux
-          
+      - name: Build ${{ matrix.version }}
+        run: dotnet publish -c Release --os ${{ matrix.version }} -o publish_${{ matrix.version }} Duplicati.BackupExplorer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Release-${{ matrix.version }}.zip
+          path: publish_${{ matrix.version }}

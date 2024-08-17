@@ -1,0 +1,41 @@
+name: Release Duplicati BackupExplorer
+run-name: Creating Release on GitHub
+#on: [push]
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [linux, win]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        name: Setup dotnet        
+        with:
+          dotnet-version: '8.x'
+      - name: Display dotnet version
+        run: dotnet --version
+      - name: Run Tests
+        run: dotnet test
+      - name: Build ${{ matrix.version }}
+        run: |
+          export DBE_OUTPUT_DIR="build_${{ matrix.version }}"
+          dotnet publish -c Release --os ${{ matrix.version }} -o "${DBE_OUTPUT_DIR}" Duplicati.BackupExplorer
+          echo DBE_OUTPUT_DIR="${DBE_OUTPUT_DIR}" >> $GITHUB_ENV
+      - name: Build Release Name
+        run: echo "DBE_RELEASE_FILENAME=Duplicati-BackupExplorer-${{ matrix.version }}-1.0.0.zip" >> $GITHUB_ENV
+      - name: Package ${{ matrix.version }}
+        run: cd "${DBE_OUTPUT_DIR}" && zip -r "../${DBE_RELEASE_FILENAME}" *
+      - name: Debug
+        run: |
+          ls -la
+          echo "ReleaseFilename: ${DBE_RELEASE_FILENAME}" 
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        #if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ${{ env.DBE_RELEASE_FILENAME }}
