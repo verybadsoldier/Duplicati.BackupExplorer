@@ -271,7 +271,7 @@ public partial class MainViewModel : ViewModelBase
         var dialog = new CompareResultWindow
         {
             Title = $"Comparison Result - {ftLeft.Name} <-> All",
-            DataContext = new CompareResultModel() { FileTree = ftLeft, LeftSide = ftLeft, RightSideName = "All Backups" }
+            DataContext = new CompareResultModel() { FileTree = ftLeft, RightSideName = "All Backups" }
         };
 
         dialog.Show();
@@ -304,7 +304,7 @@ public partial class MainViewModel : ViewModelBase
         var dialog = new CompareResultWindow
         {
             Title = $"Comparison Result - {LeftSide.Name} <-> {RightSide.Name}",
-            DataContext = new CompareResultModel() { FileTree = LeftSide, LeftSide = LeftSide, RightSideName = RightSide.Name }
+            DataContext = new CompareResultModel() { FileTree = LeftSide, RightSideName = RightSide.Name }
         };
 
         dialog.Show();

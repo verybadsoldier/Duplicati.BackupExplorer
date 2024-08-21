@@ -73,7 +73,6 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
             await CompareFiletrees(left, [rightF]);
         }
 
-
         async public Task CompareFiletrees(FileTree left, IEnumerable<FileTree> rightFss)
         {
             var rightBlocks = new List<Block>();

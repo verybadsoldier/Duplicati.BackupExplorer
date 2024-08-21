@@ -6,10 +6,8 @@
         x:Class="Duplicati.BackupExplorer.Views.CompareResultWindow"
         xmlns:vm="clr-namespace:Duplicati.BackupExplorer.ViewModels"
         xmlns:views="clr-namespace:Duplicati.BackupExplorer.Views"
-        Title="CompareResultWindow">
+        Title="CompareResultWindow" MinWidth="800" MinHeight="400">
   <Design.DataContext>
-    <!-- This only sets the DataContext for the previewer in an IDE,
-         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
     <vm:CompareResultModel />
   </Design.DataContext>
   <Window.Styles>
@@ -26,25 +24,23 @@
       <Setter Property="IsVisible" Value="True"/>
     </Style>
   </Window.Styles>
-  
-  <StackPanel Orientation="Vertical">
-    <Grid ColumnDefinitions="Auto, Auto, *" RowDefinitions="30,30,50" Margin="10">
-      <Label Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
-      <Label Grid.Row="0" Grid.Column="1" Content="{Binding LeftSide}"></Label>
-      <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
-      <Label Grid.Row="1" Grid.Column="1" Content="{Binding RightSide}"></Label>
-      <Button Grid.Row="0" Grid.Column="2" Command="{Binding Close}" Background="Red" HorizontalAlignment="Right">
-        Close
-      </Button>
-      <ToggleButton Grid.Row="3" IsChecked="{Binding ShowDisjunct}">
-        <Panel>
-          <Label Classes="shared">Showing Shared</Label>
-          <Label Classes="disjunct">Showing Disjunct</Label>
-        </Panel>
-      </ToggleButton>
-    </Grid>
 
-    <TreeView ItemsSource="{Binding FileTree.Nodes}">
+  <Grid ColumnDefinitions="Auto, Auto, *, *" RowDefinitions="30,45,30,*,45" Margin="10">
+    <Label Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
+    <Label Grid.Row="0" Grid.Column="1" FontWeight="DemiBold" Content="{Binding FileTree}"></Label>
+    <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
+    <Label Grid.Row="1" Grid.Column="1" FontWeight="DemiBold" Content="{Binding RightSideName}"></Label>
+    <ToggleButton Grid.Row="4" Grid.Column="0" FontSize="20"  IsChecked="{Binding ShowDisjunct}" HorizontalAlignment="Left">
+      <Panel>
+        <Label Classes="shared">Showing Shared</Label>
+        <Label Classes="disjunct">Showing Disjunct</Label>
+      </Panel>
+    </ToggleButton>
+    <Label Grid.Row="2" FontSize="18">Comparison Result:</Label>
+    <Button Grid.Row="4" Grid.Column="3" FontSize="20" Command="{Binding Close}" CommandParameter="{Binding $parent[Window]}" Background="Green" HorizontalAlignment="Right">
+      Close
+    </Button>
+    <TreeView Grid.Row="3" Grid.RowSpan="3" Grid.ColumnSpan="3" ItemsSource="{Binding FileTree.Nodes}">
       <TreeView.ItemTemplate>
         <Binding Path="ShowDisjunct">
           <Binding.Converter>
@@ -90,6 +86,5 @@
         </Binding>
       </TreeView.ItemTemplate>
     </TreeView>
-
-  </StackPanel>
+  </Grid>
 </Window>

@@ -23,15 +23,16 @@ public partial class CompareResultModel : ViewModelBase
 {
     public FileTree FileTree { get; set; }
 
-    private FileTree? _leftSide = null;
     private string? _rightSideName = null;
 
     private bool _showDisjunct = false;
 
-    public FileTree? LeftSide { get { return _leftSide; } set { _leftSide = value; OnPropertyChanged(nameof(LeftSide)); } }
-    public string RightSideName {
-        get {
-            if (_rightSideName == null) {
+    public string RightSideName
+    {
+        get
+        {
+            if (_rightSideName == null)
+            {
                 throw new InvalidOperationException("No right side name set");
             }
             return _rightSideName;
@@ -43,11 +44,14 @@ public partial class CompareResultModel : ViewModelBase
         }
     }
 
-    public bool ShowDisjunct { 
-        get { 
+    public bool ShowDisjunct
+    {
+        get
+        {
             return _showDisjunct;
         }
-        set { 
+        set
+        {
             _showDisjunct = value;
             OnPropertyChanged(nameof(ShowDisjunct));
         }
@@ -56,10 +60,17 @@ public partial class CompareResultModel : ViewModelBase
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Minor Code Smell", "S1075:URIs should not be hardcoded", Justification = "<Pending>")]
     public CompareResultModel()
     {
-        FileTree = new FileTree();
-        var node = FileTree.AddPath("D:\\myPath\\myFile.dat", 224);
-        node.CompareResult = new CompareResult() { RightSize=1000000000, LeftSize=12300000000, LeftNumBlocks=200, RightNumBlocks=900, SharedSize=616515125, SharedNumBlocks=180};
-        FileTree.UpdateDirectoryCompareResults();
+        var fileTree = new FileTree();
+        var node = fileTree.AddPath("D:\\myPath\\myFile.dat", 224);
+        node.CompareResult = new CompareResult() { RightSize = 1000000000, LeftSize = 12300000000, LeftNumBlocks = 200, RightNumBlocks = 900, SharedSize = 616515125, SharedNumBlocks = 180 };
+        fileTree.UpdateDirectoryCompareResults();
+        RightSideName = "Backup 20-12-2024";
+        FileTree = fileTree;
     }
 
+    public void Close(object parent)
+    {
+        var wnd = (Window)parent;
+        wnd.Close();
+    }
 }
