@@ -1,7 +1,4 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Controls.Selection;
+﻿using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Duplicati.BackupExplorer.LocalDatabaseAccess;
@@ -9,20 +6,13 @@ using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
 using Duplicati.BackupExplorer.Views;
-using Microsoft.VisualBasic;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Drawing;
-using System.Formats.Asn1;
-using System.Formats.Tar;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,9 +21,6 @@ namespace Duplicati.BackupExplorer.ViewModels;
 
 public class FileSystemItem
 {
-    public ObservableCollection<FileSystemItem>? SubNodes { get; }
-    public string Title { get; }
-
     public FileSystemItem(string title)
     {
         Title = title;
@@ -44,6 +31,8 @@ public class FileSystemItem
         Title = title;
         SubNodes = subNodes;
     }
+    public ObservableCollection<FileSystemItem>? SubNodes { get; }
+    public string Title { get; }
 }
 
 public partial class MainViewModel : ViewModelBase
@@ -54,7 +43,34 @@ public partial class MainViewModel : ViewModelBase
 
     private IStorageProvider _provider;
 
-    public string WindowTitle { get; set; }
+    private bool _isProcessing = false;
+
+
+    private FileTree? _leftSide = null;
+    private FileTree? _rightSide = null;
+
+    private FileTree _fileTree = new("<None>");
+
+
+    private bool _isCompareElementsSelected = false;
+
+    private bool _isProjectLoaded = false;
+
+
+    private IBrush _buttonSelectDatabaseColor = Brushes.Green;
+
+    private string _loadButtonLabel = "Select Database";
+    private bool _progressVisible = false;
+    private double _progress = 0;
+    private string _progressTextFormat = "";
+
+    private string _projectFilename = "";
+    private long? _allBackupsSize;
+
+    private CancellationTokenSource? _loadProjectCancellation;
+
+    private bool _isLoadingDatabase = false;
+
 
     public MainViewModel(DuplicatiDatabase database, Comparer comparer, IStorageProvider provider)
     {
@@ -64,12 +80,12 @@ public partial class MainViewModel : ViewModelBase
 
         _provider = provider;
 
-        ProjectFilename = "D:\\duplicati.sqlite";
+        ProjectFilename = "";
 
-        Items = ["asd", "fsg"];
+        Items = [];
 
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown Version";
-        WindowTitle = $"Duplicati BackupExplorer - Version {version}";
+        WindowTitle = $"Duplicati BackupExplorer - v{version}";
 
         SelectedBackups.CollectionChanged += SelectedBackups_CollectionChanged;
     }
@@ -106,6 +122,41 @@ public partial class MainViewModel : ViewModelBase
         RightSide = new FileTree();
     }
 
+    public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged(nameof(ProjectFilename)); } }
+
+    public long? AllBackupsSize { get { return _allBackupsSize; } set { _allBackupsSize = value; OnPropertyChanged(nameof(AllBackupsSize)); } }
+
+    public IBrush ButtonSelectDatabaseColor { get { return _buttonSelectDatabaseColor; } set { _buttonSelectDatabaseColor = value; OnPropertyChanged(nameof(ButtonSelectDatabaseColor)); } }
+
+    public bool IsCompareElementsSelected { get { return _isCompareElementsSelected; } set { _isCompareElementsSelected = value; OnPropertyChanged(nameof(IsCompareElementsSelected)); } }
+
+    public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged(nameof(IsProjectLoaded)); } }
+
+    public FileTree FileTree { get { return _fileTree; } set { _fileTree = value; OnPropertyChanged(nameof(FileTree)); } }
+
+    public ObservableCollection<string> Items { get; set; }
+
+    public ObservableCollection<Backup> Backups { get; set; } = [];
+
+    public ObservableCollection<Backup> SelectedBackups { get; set; } = [];
+
+    public string LoadButtonLabel { get { return _loadButtonLabel; } set { _loadButtonLabel = value; OnPropertyChanged(nameof(LoadButtonLabel)); } }
+
+    public bool ProgressVisible { get { return _progressVisible; } set { _progressVisible = value; OnPropertyChanged(nameof(ProgressVisible)); } }
+    public double Progress { get { return _progress; } set { _progress = value; OnPropertyChanged(nameof(Progress)); } }
+    public string ProgressTextFormat { get { return _progressTextFormat; } set { _progressTextFormat = value; OnPropertyChanged(nameof(ProgressTextFormat)); } }
+
+    public bool IsLoadingDatabase { get { return _isLoadingDatabase; } set { _isLoadingDatabase = value; OnPropertyChanged(nameof(IsLoadingDatabase)); } }
+
+    public FileTree? LeftSide { get { return _leftSide; } set { _leftSide = value; OnPropertyChanged(nameof(LeftSide)); } }
+    public FileTree? RightSide { get { return _rightSide; } set { _rightSide = value; OnPropertyChanged(nameof(RightSide)); } }
+
+
+    public bool IsProcessing { get { return _isProcessing; } set { _isProcessing = value; OnPropertyChanged(nameof(IsProcessing)); } }
+
+    public string WindowTitle { get; set; }
+
+
     private void ShowProgressBar(bool show)
     {
         Progress = 0;
@@ -131,37 +182,6 @@ public partial class MainViewModel : ViewModelBase
         _provider = provider;
     }
 
-    private FileTree _fileTree = new();
-
-    private IBrush _buttonSelectDatabaseColor = Brushes.Green;
-
-    public IBrush ButtonSelectDatabaseColor { get { return _buttonSelectDatabaseColor; } set { _buttonSelectDatabaseColor = value; OnPropertyChanged(nameof(ButtonSelectDatabaseColor)); } }
-
-    public FileTree FileTree { get { return _fileTree; } set { _fileTree = value; OnPropertyChanged(nameof(FileTree)); } }
-
-    public ObservableCollection<string> Items { get; set; }
-
-    private string _loadButtonLabel = "Select Database";
-    private bool _progressVisible = false;
-    private double _progress = 0;
-    private string _progressTextFormat = "";
-
-    private string _projectFilename = "";
-    public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged(nameof(ProjectFilename)); } }
-
-    private long? _allBackupsSize;
-    public long? AllBackupsSize { get { return _allBackupsSize; } set { _allBackupsSize = value; OnPropertyChanged(nameof(AllBackupsSize)); } }
-
-    public ObservableCollection<Backup> Backups { get; set; } = [];
-
-    public ObservableCollection<Backup> SelectedBackups { get; set; } = [];
-
-    public string LoadButtonLabel { get { return _loadButtonLabel; } set { _loadButtonLabel = value; OnPropertyChanged(nameof(LoadButtonLabel)); } }
-
-    public bool ProgressVisible { get { return _progressVisible; } set { _progressVisible = value; OnPropertyChanged(nameof(ProgressVisible)); } }
-    public double Progress { get { return _progress; } set { _progress = value; OnPropertyChanged(nameof(Progress)); } }
-    public string ProgressTextFormat { get { return _progressTextFormat; } set { _progressTextFormat = value; OnPropertyChanged(nameof(ProgressTextFormat)); } }
-
     public void SelectLeftSide(object? sender)
     {
         SelectSide(sender, true);
@@ -171,18 +191,6 @@ public partial class MainViewModel : ViewModelBase
     {
         SelectSide(sender, false);
     }
-
-    private FileTree? _leftSide = null;
-    private FileTree? _rightSide = null;
-
-    private CancellationTokenSource? _loadProjectCancellation;
-
-    private bool _isLoadingDatabase = false;
-
-    public bool IsLoadingDatabase { get { return _isLoadingDatabase; } set { _isLoadingDatabase = value; OnPropertyChanged(nameof(IsLoadingDatabase)); } }
-
-    public FileTree? LeftSide {  get { return _leftSide; } set { _leftSide = value; OnPropertyChanged(nameof(LeftSide)); } }
-    public FileTree? RightSide { get { return _rightSide; } set { _rightSide = value; OnPropertyChanged(nameof(RightSide)); } }
 
     private FileTree GetFileTreeFromSelection(object? selection)
     {
@@ -232,7 +240,8 @@ public partial class MainViewModel : ViewModelBase
         if (left)
         {
             LeftSide = ft;
-        }else
+        }
+        else
         {
             RightSide = ft;
         }
@@ -243,19 +252,16 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private bool _isProcessing = false;
-
-    public bool IsProcessing { get { return _isProcessing; } set { _isProcessing = value; OnPropertyChanged(nameof(IsProcessing)); } }
-
     async public Task CompareToAll(object? sender)
-    {      
+    {
         IsProcessing = true;
         ShowProgressBar(true);
 
         var ftLeft = GetFileTreeFromSelection(sender);
 
         var progressStep = 100.0 / ftLeft.GetFileNodes().Count();
-        _comparer.OnBlocksCompareFinished += () => {
+        _comparer.OnBlocksCompareFinished += () =>
+        {
             Progress += progressStep;
         };
 
@@ -291,9 +297,10 @@ public partial class MainViewModel : ViewModelBase
 
         IsProcessing = true;
         ShowProgressBar(true);
-     
+
         var progressStep = 100.0 / LeftSide.GetFileNodes().Count();
-        _comparer.OnBlocksCompareFinished += () => { 
+        _comparer.OnBlocksCompareFinished += () =>
+        {
             Progress += progressStep;
         };
 
@@ -312,14 +319,6 @@ public partial class MainViewModel : ViewModelBase
         IsProcessing = false;
         ShowProgressBar(false);
     }
-
-    private bool _isCompareElementsSelected = false;
-
-    public bool IsCompareElementsSelected { get { return _isCompareElementsSelected; } set { _isCompareElementsSelected = value; OnPropertyChanged(nameof(IsCompareElementsSelected)); } }
-
-    private bool _isProjectLoaded = false;
-
-    public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged(nameof(IsProjectLoaded)); } }
 
 
     public async Task SelectDatabase(object parent)
@@ -438,7 +437,7 @@ public partial class MainViewModel : ViewModelBase
 
 
                 ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId, fileSize);
-                
+
             }
 
             Progress += progStep;

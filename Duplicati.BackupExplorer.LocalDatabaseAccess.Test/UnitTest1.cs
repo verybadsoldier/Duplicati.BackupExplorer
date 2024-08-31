@@ -1,5 +1,4 @@
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
-using System.ComponentModel.DataAnnotations;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Test
 {

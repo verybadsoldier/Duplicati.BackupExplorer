@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Avalonia;
+using Avalonia.Data.Converters;
+using System;
+using System.Globalization;
+
 
 namespace Duplicati.BackupExplorer.Views
 {
-    using System;
-    using Avalonia.Data.Converters;
-    using System.Globalization;
-    using Avalonia;
 
     public class MultiplyByHundredConverter : IValueConverter
     {

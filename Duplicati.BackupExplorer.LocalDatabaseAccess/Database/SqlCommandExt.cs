@@ -2,7 +2,6 @@
 {
     //https://stackoverflow.com/a/2377651
     using Microsoft.Data.Sqlite;
-    using System.Data;
 
     public static class SqlCommandExt
     {

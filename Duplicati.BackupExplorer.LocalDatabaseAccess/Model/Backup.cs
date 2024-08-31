@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
+﻿using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 {
@@ -13,12 +8,15 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public FileTree? FileTree { get; set; }
 
-        public long Size {  get {
+        public long Size
+        {
+            get
+            {
                 if (FileTree is null)
                 {
                     throw new InvalidOperationException("FileTree is null");
                 }
-                return(FileTree.Nodes[0]).NodeSize;
+                return (FileTree.Nodes[0]).NodeSize;
             }
         }
 

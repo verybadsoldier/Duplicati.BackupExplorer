@@ -11,36 +11,54 @@
     <vm:CompareResultModel />
   </Design.DataContext>
   <Window.Styles>
-    <Style Selector="ToggleButton Label.shared">
-      <Setter Property="IsVisible" Value="True"/>
+    <Style Selector="Button">
+      <Setter Property="FontSize" Value="14"></Setter>
     </Style>
-    <Style Selector="ToggleButton Label.disjunct">
-      <Setter Property="IsVisible" Value="False"/>
+    <Style Selector="ToggleButton">
+      <Setter Property="FontSize" Value="14"></Setter>
+      <Setter Property="Background" Value="Orange"/>
+      <Setter Property="Foreground" Value="Black"/>
     </Style>
-    <Style Selector="ToggleButton:checked Label.shared">
-      <Setter Property="IsVisible" Value="False"/>
+    <Style Selector="ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="FontSize" Value="14"></Setter>
+      <Setter Property="Background" Value="LightBlue"/>
+      <Setter Property="Foreground" Value="Black"/>
     </Style>
-    <Style Selector="ToggleButton:checked Label.disjunct">
-      <Setter Property="IsVisible" Value="True"/>
+    <Style Selector="ToggleButton">
+      <Style Selector="^ Label">
+        <Setter Property="FontSize" Value="14"></Setter>
+      </Style>
+      <Style Selector="^ Label.shared">
+        <Setter Property="IsVisible" Value="True"/>
+      </Style>
+      <Style Selector="^ Label.disjunct">
+        <Setter Property="IsVisible" Value="False"/>
+      </Style>
+      <Style Selector="^:checked Label.shared">
+        <Setter Property="IsVisible" Value="False"/>
+      </Style>
+      <Style Selector="^:checked Label.disjunct">
+        <Setter Property="IsVisible" Value="True"/>
+      </Style>
     </Style>
   </Window.Styles>
 
-  <Grid ColumnDefinitions="Auto, Auto, *, *" RowDefinitions="30,45,30,*,45" Margin="10">
+  <Grid ColumnDefinitions="Auto, Auto, *, *" RowDefinitions="30,45,30,*,45" Margin="10,10,10,5">
     <Label Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
     <Label Grid.Row="0" Grid.Column="1" FontWeight="DemiBold" Content="{Binding FileTree}"></Label>
     <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
     <Label Grid.Row="1" Grid.Column="1" FontWeight="DemiBold" Content="{Binding RightSideName}"></Label>
-    <ToggleButton Grid.Row="4" Grid.Column="0" FontSize="20"  IsChecked="{Binding ShowDisjunct}" HorizontalAlignment="Left">
+    <ToggleButton Grid.Row="4" Grid.Column="0" ToolTip.Tip="Invert percentages to either show shared or disjunct portions" IsChecked="{Binding ShowDisjunct}" HorizontalAlignment="Left" Height="36" VerticalContentAlignment="Center" >
       <Panel>
         <Label Classes="shared">Showing Shared</Label>
         <Label Classes="disjunct">Showing Disjunct</Label>
       </Panel>
     </ToggleButton>
     <Label Grid.Row="2" FontSize="18">Comparison Result:</Label>
-    <Button Grid.Row="4" Grid.Column="3" FontSize="20" Command="{Binding Close}" CommandParameter="{Binding $parent[Window]}" Background="Green" HorizontalAlignment="Right">
+    <Button Grid.Row="4" Grid.Column="3" Command="{Binding Close}" CommandParameter="{Binding $parent[Window]}" Background="Red" HorizontalAlignment="Right" VerticalContentAlignment="Center" Height="36">
       Close
     </Button>
-    <TreeView Grid.Row="3" Grid.RowSpan="3" Grid.ColumnSpan="3" ItemsSource="{Binding FileTree.Nodes}">
+    <TreeView Grid.Row="3" Grid.ColumnSpan="3" ItemsSource="{Binding FileTree.Nodes}">
       <TreeView.ItemTemplate>
         <Binding Path="ShowDisjunct">
           <Binding.Converter>
@@ -48,7 +66,7 @@
               <TreeDataTemplate x:Key="shared" ItemsSource="{Binding Children.Values}">
                 <StackPanel Orientation="Horizontal">
                   <TextBlock Text="{Binding Name}" Margin="0,15,15,0"/>
-                  <ProgressBar MinWidth="100" Height="20"
+                  <ProgressBar MinWidth="100" Height="20"  Foreground="Orange"
                       Minimum="0" Maximum="100" Value="{Binding CompareResult.SharedPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
                       ShowProgressText="True">
                   </ProgressBar>
@@ -65,7 +83,7 @@
               <TreeDataTemplate x:Key="disjunct" ItemsSource="{Binding Children.Values}">
                 <StackPanel Orientation="Horizontal">
                   <TextBlock Text="{Binding Name}" Margin="0,15,15,0"/>
-                  <ProgressBar MinWidth="100" Height="20"
+                  <ProgressBar MinWidth="100" Height="20" Foreground="LightBlue"
                       Minimum="0" Maximum="100" Value="{Binding CompareResult.DisjunctPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
                       ShowProgressText="True">
                   </ProgressBar>

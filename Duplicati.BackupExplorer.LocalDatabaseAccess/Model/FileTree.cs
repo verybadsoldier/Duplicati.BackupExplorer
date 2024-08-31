@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 {
     public class FileNode(string name, long? fileSize)
     {
+        private readonly long? _fileSize = fileSize;
+
         public string Name { get; set; } = name;
         public FileNode? Parent { get; set; }
         public bool IsFile { get; set; } = false;
@@ -19,7 +14,6 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
         public CompareResult? CompareResult { get; set; }
         public OrderedDictionary Children { get; set; } = [];
 
-        private readonly long? _fileSize = fileSize;
 
         public long NodeSize
         {
@@ -131,16 +125,18 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
     public class FileTree
     {
+        private static readonly char[] separator = ['\\', '/'];
+
+        public FileTree(string rootName="Root")
+        {
+            Nodes.Add(new FileNode(rootName, null));
+        }
+
         public ObservableCollection<FileNode> Nodes { get; set; } = [];
 
         public string? Name { get; set; }
 
-        private static readonly char[] separator = ['\\', '/'];
 
-        public FileTree()
-        {
-            Nodes.Add(new FileNode("Root", null));
-        }
 
         override public string ToString()
         {

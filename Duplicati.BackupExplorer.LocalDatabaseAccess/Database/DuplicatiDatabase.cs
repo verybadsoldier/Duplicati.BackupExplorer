@@ -1,21 +1,12 @@
 ﻿namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database
 {
+    using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
+    using Microsoft.Data.Sqlite;
     using System;
     using System.Collections.Generic;
     using System.Data;
-    using Microsoft.Data.Sqlite;
-    using System.IO;
-
-    using SizeBytes = long;
     using BlockID = long;
-    using FileID = long;
-    using VolumeID = long;
     using BlocksetID = long;
-    using OperationID = long;
-    using FilesetID = long;
-    using PathPrefixID = long;
-    using static System.Net.WebRequestMethods;
-    using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
     using File = Model.File;
 
     public class DuplicatiDatabase : IDisposable

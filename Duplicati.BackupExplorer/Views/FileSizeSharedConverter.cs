@@ -1,18 +1,13 @@
-﻿using System;
+﻿using Avalonia;
+using Avalonia.Data.Converters;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Duplicati.BackupExplorer.Views
 {
-    using System;
-    using Avalonia.Data.Converters;
-    using System.Globalization;
-    using Avalonia;
-    using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
-    using System.IO;
-    using Avalonia.Media.Immutable;
+
 
     public class FileSizeSharedConverter : IMultiValueConverter
     {

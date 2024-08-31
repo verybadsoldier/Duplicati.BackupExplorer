@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
+﻿using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
-using static System.Reflection.Metadata.BlobBuilder;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 {
@@ -15,7 +8,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
     {
         private readonly DuplicatiDatabase _database = database;
 
-        public delegate void BlocksCompareFinished ();
+        public delegate void BlocksCompareFinished();
 
         public event BlocksCompareFinished? OnBlocksCompareFinished;
 
@@ -37,7 +30,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
         async public Task<CompareResult> CompareFilesets(Fileset fs1, Fileset fs2)
         {
             var blocks1 = await GetBlockIdsForFileset(fs1);
-            var blocks2  = await GetBlockIdsForFileset(fs2);
+            var blocks2 = await GetBlockIdsForFileset(fs2);
 
             return CalculateResults(blocks1, blocks2, blocks2.Sum(x => x.Size));
         }
@@ -55,7 +48,8 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
             // The count of the intersection set is the number of common elements
             long sizeIntersect = shared.Sum(x => x.Size);
 
-            var result = new CompareResult { 
+            var result = new CompareResult
+            {
                 LeftNumBlocks = leftBlocks.Count,
                 RightNumBlocks = rightBlocks.Count,
                 LeftSize = leftSize,
@@ -77,7 +71,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
         {
             var rightBlocks = new List<Block>();
             var blockIds = new HashSet<long>();
-            foreach(var rightF in rightFss)
+            foreach (var rightF in rightFss)
             {
                 foreach (var rightFs in rightF.GetFileNodes())
                 {

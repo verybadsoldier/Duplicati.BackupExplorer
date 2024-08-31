@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Avalonia;
+using Avalonia.Data.Converters;
+using System;
+using System.Globalization;
 
 namespace Duplicati.BackupExplorer.Views
 {
-    using System;
-    using Avalonia.Data.Converters;
-    using System.Globalization;
-    using Avalonia;
-    using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
-    using System.IO;
+
 
     public class FileSizeConverter : IValueConverter
     {
@@ -22,7 +16,8 @@ namespace Duplicati.BackupExplorer.Views
             int order = 0;
 
             float floatValue = longValue;
-            if (unit == null) {
+            if (unit == null)
+            {
                 while (floatValue >= 1024 && order < sizes.Length - 1)
                 {
                     order++;
@@ -34,7 +29,7 @@ namespace Duplicati.BackupExplorer.Views
                 order = Array.FindIndex(sizes, x => x == unit);
                 floatValue /= (float)Math.Pow(1024, order);
             }
- 
+
             return Tuple.Create(floatValue, sizes[order]);
         }
 

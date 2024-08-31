@@ -1,11 +1,4 @@
-﻿using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Duplicati.BackupExplorer.LocalDatabaseAccess
+﻿namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 {
     public class CompareResult
     {
@@ -18,7 +11,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
         public float RightSizeGb => BytesToGb(RightSize);
         #endregion
 
-        public long SharedSize {  get; set; }
+        public long SharedSize { get; set; }
         public float SharedSizeGb => BytesToGb(SharedSize);
 
         public long DisjunctSize => LeftSize - SharedSize;
