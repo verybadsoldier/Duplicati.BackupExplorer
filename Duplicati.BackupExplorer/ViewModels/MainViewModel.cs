@@ -112,10 +112,6 @@ public partial class MainViewModel : ViewModelBase
 #pragma warning restore S1075 // URIs should not be hardcoded
 
         FileTree = ft;
-
-        LeftSide = new FileTree();
-
-        RightSide = new FileTree();
     }
 
     public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged(nameof(ProjectFilename)); } }
