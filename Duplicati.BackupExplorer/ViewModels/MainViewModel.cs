@@ -45,17 +45,14 @@ public partial class MainViewModel : ViewModelBase
 
     private bool _isProcessing = false;
 
-
     private FileTree? _leftSide = null;
     private FileTree? _rightSide = null;
 
     private FileTree _fileTree = new("<None>");
 
-
     private bool _isCompareElementsSelected = false;
 
     private bool _isProjectLoaded = false;
-
 
     private IBrush _buttonSelectDatabaseColor = Brushes.Green;
 
@@ -70,7 +67,6 @@ public partial class MainViewModel : ViewModelBase
     private CancellationTokenSource? _loadProjectCancellation;
 
     private bool _isLoadingDatabase = false;
-
 
     public MainViewModel(DuplicatiDatabase database, Comparer comparer, IStorageProvider provider)
     {

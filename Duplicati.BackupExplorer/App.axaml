@@ -8,6 +8,7 @@
     <local:MultiplyByHundredConverter x:Key="MultiplyByHundredConverter" />
     <local:FileSizeConverter x:Key="FileSizeConverter" />
     <local:FileSizeSharedConverter x:Key="FileSizeSharedConverter" />
+    <local:ComparisonItemNameConverter x:Key="ComparisonItemNameConverter" />
   </Application.Resources>
     <Application.Styles>
         <FluentTheme />

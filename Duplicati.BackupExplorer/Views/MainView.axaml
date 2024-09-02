@@ -53,9 +53,9 @@
             ShowProgressText="True" IsVisible="{Binding ProgressVisible}"/>
 
       <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
-      <Label Grid.Row="1" Grid.Column="1" FontWeight="DemiBold" FontStretch="Expanded" Content="{Binding LeftSide}"></Label>
+      <Label Grid.Row="1" Grid.Column="1" FontWeight="DemiBold" FontStretch="Expanded" Content="{Binding LeftSide, Converter={StaticResource ComparisonItemNameConverter}}"></Label>
       <Label Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
-      <Label Grid.Row="2" Grid.Column="1" FontWeight="DemiBold" Content="{Binding RightSide}"></Label>
+      <Label Grid.Row="2" Grid.Column="1" FontWeight="DemiBold" Content="{Binding RightSide, Converter={StaticResource ComparisonItemNameConverter}}"></Label>
       <Button Grid.Column="3" Grid.Row="1" Grid.RowSpan="2" ToolTip.Tip="Compare the selected base and target" Command="{Binding Compare}" Background="Green" HorizontalAlignment="Right" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="180" MinHeight="60" FontSize="20" FontWeight="Bold">
         <Button.IsEnabled>
           <MultiBinding Converter="{x:Static BoolConverters.And}">
