@@ -26,7 +26,7 @@ jobs:
           dotnet publish -c Release --os ${{ matrix.version }} -o "${DBE_OUTPUT_DIR}" Duplicati.BackupExplorer
           echo DBE_OUTPUT_DIR="${DBE_OUTPUT_DIR}" >> $GITHUB_ENV
       - name: Build Release Name
-        run: echo "DBE_RELEASE_FILENAME=Duplicati-BackupExplorer-${{ matrix.version }}-1.0.0.zip" >> $GITHUB_ENV
+        run: echo "DBE_RELEASE_FILENAME=Duplicati-BackupExplorer-${{ matrix.version }}-${{ github.ref_name }}.zip" >> $GITHUB_ENV
       - name: Package ${{ matrix.version }}
         run: cd "${DBE_OUTPUT_DIR}" && zip -r "../${DBE_RELEASE_FILENAME}" *
       - name: Debug
