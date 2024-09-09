@@ -368,7 +368,7 @@ public partial class MainViewModel : ViewModelBase
             catch (Exception e)
             {
                 AllBackupsSize = 0;
-                var box = MessageBoxManager.GetMessageBoxStandard("Error opening Database", $"An error occured when trying to load the Duplicati database file '{storageFile}': {e.Message}", ButtonEnum.Ok);
+                var box = MessageBoxManager.GetMessageBoxStandard("Error opening Database", $"An error occured when trying to load the Duplicati database file '{storageFile.Path}': {e.Message}", ButtonEnum.Ok);
                 await box.ShowAsPopupAsync((Window)parent);
             }
         }
@@ -391,6 +391,8 @@ public partial class MainViewModel : ViewModelBase
         ProgressTextFormat = $"Opening database... ({{1:0}} %)";
 
         _database.Open(ProjectFilename);
+
+        _database.CheckDatabaseCompatibility(_database.GetVersion());
 
         Progress = 10;
 

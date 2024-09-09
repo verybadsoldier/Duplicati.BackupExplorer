@@ -2,6 +2,7 @@
 {
     using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
     using Microsoft.Data.Sqlite;
+    using Microsoft.VisualBasic;
     using System;
     using System.Collections.Generic;
     using System.Data;
@@ -17,6 +18,26 @@
         private List<File> _filesCache = [];
         private Dictionary<BlockID, Block> _blocksCache = [];
         private Dictionary<BlocksetID, HashSet<Block>> _blocksetCache = [];
+        private readonly Dictionary<string, int> _databaseVersion = new();
+
+        public DuplicatiDatabase()
+        {
+            _databaseVersion  = new Dictionary<string, int>()
+            {
+                { "2.0.8", 12 },
+            };
+        }
+
+        public void CheckDatabaseCompatibility(int dbVersion)
+        {
+            foreach (var kvp in _databaseVersion)
+            {
+                if (kvp.Value == dbVersion)
+                    return;
+            }
+            var versions = string.Join(",", _databaseVersion.Keys);
+            throw new InvalidOperationException($"Database version {dbVersion} not supported. Supported Duplicati versions: {versions}");
+        }
 
         public void Open(string filepath)
         {
@@ -170,6 +191,23 @@
             var ids = fileIds.ToHashSet();
             return _filesCache.Where(x => ids.Contains(x.Id)).ToList();
         }
+
+        public int GetVersion()
+        {
+            CheckConnectionNotNull();
+
+            using var cmd = _conn!.CreateCommand();
+            cmd.CommandText = @"
+                SELECT
+                    ID, Version
+                FROM 
+                    Version";
+
+            using var reader = cmd.ExecuteReader();
+            reader.Read();
+            return reader.GetInt32(1);
+        }
+
 
         public void InitFilesCache()
         {
