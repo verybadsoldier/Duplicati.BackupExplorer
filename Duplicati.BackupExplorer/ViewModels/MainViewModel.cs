@@ -63,6 +63,7 @@ public partial class MainViewModel : ViewModelBase
 
     private string _projectFilename = "";
     private long? _allBackupsSize;
+    private long? _allBackupsWasted;
 
     private CancellationTokenSource? _loadProjectCancellation;
 
@@ -108,15 +109,21 @@ public partial class MainViewModel : ViewModelBase
         ft.AddPath(@"C:\Temp\MyFile.cs", 1542351123);
         ft.AddPath(@"C:\Temp\MyFile2.cs", 3399293492);
         ft.AddPath(@"C:\Windows", 1);
+        ft.AddPath(@"C:\Windows\System\System.dll", 1);
+        ft.AddPath(@"E:\DataDir\content.dat", 1);
         ft.AddPath(@"D:\MyDir\MyFile3.cs", 5399293492);
 #pragma warning restore S1075 // URIs should not be hardcoded
 
         FileTree = ft;
+
+        IsProjectLoaded = true;
+        AllBackupsWasted = 154352345345;
     }
 
     public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged(nameof(ProjectFilename)); } }
 
     public long? AllBackupsSize { get { return _allBackupsSize; } set { _allBackupsSize = value; OnPropertyChanged(nameof(AllBackupsSize)); } }
+    public long? AllBackupsWasted { get { return _allBackupsWasted; } set { _allBackupsWasted = value; OnPropertyChanged(nameof(AllBackupsWasted)); } }
 
     public IBrush ButtonSelectDatabaseColor { get { return _buttonSelectDatabaseColor; } set { _buttonSelectDatabaseColor = value; OnPropertyChanged(nameof(ButtonSelectDatabaseColor)); } }
 
@@ -328,13 +335,18 @@ public partial class MainViewModel : ViewModelBase
             var storageFile = await DoOpenFilePickerAsync();
             if (storageFile == null) return;
 
-
             try
             {
+                if (storageFile.Path.AbsolutePath.EndsWith("Duplicati-server.sqlite"))
+                {
+                    throw new InvalidOperationException("Cannot load the Duplicati internal database. Please select one of the randomly named sqlite database files each one representing one backup job.");
+                }
+
                 using (_loadProjectCancellation = new CancellationTokenSource())
                 {
                     ProjectFilename = storageFile.Path.AbsolutePath;
 
+                    IsProjectLoaded = false;
                     LoadButtonLabel = "Cancel";
                     ButtonSelectDatabaseColor = Brushes.Red;
                     Backups.Clear();
@@ -441,5 +453,6 @@ public partial class MainViewModel : ViewModelBase
             AllBackupsSize = allBlocks.Sum(x => x.Size);
             Backups.Add(backup);
         }
+        AllBackupsWasted = _database.WastedSpaceSum();
     }
 }

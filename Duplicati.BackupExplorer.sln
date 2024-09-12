@@ -5,6 +5,7 @@ VisualStudioVersion = 17.10.34928.147
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C4E09712-9379-4337-9503-2DB5D087AA28}"
 	ProjectSection(SolutionItems) = preProject
+		explanation.md = explanation.md
 		use_cases.md = use_cases.md
 	EndProjectSection
 EndProject

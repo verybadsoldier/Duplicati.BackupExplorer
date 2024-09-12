@@ -19,7 +19,7 @@
       <Button Grid.Column="2" ToolTip.Tip="Select a Duplicati database file to load" Background="{Binding ButtonSelectDatabaseColor}" Command="{Binding SelectDatabase}" CommandParameter="{Binding $parent[Window]}" Content="{Binding LoadButtonLabel}" />
     </Grid>
 
-    <Grid DockPanel.Dock="Left" RowDefinitions="Auto,1*">
+    <Grid DockPanel.Dock="Left" RowDefinitions="Auto,1*,Auto">
       <StackPanel Orientation="Horizontal">
         <Label Grid.Row="0" Margin="0,10,0,0">Backups:</Label>
         <Label Grid.Row="0" Margin="0,10,0,0" Foreground="DarkGray" Content="{Binding AllBackupsSize, Converter={StaticResource FileSizeConverter}}"></Label>
@@ -45,6 +45,10 @@
           </DataTemplate>
         </ListBox.ItemTemplate>
       </ListBox>
+      <StackPanel Grid.Row="2" Orientation="Horizontal" IsVisible="{Binding IsProjectLoaded}" ToolTip.Tip="Uncompressed size of data that can be freed by using COMPACT command.">
+        <Image Height="30" Margin="10, 10,5,0" RenderOptions.BitmapInterpolationMode="HighQuality" Source="avares://Duplicati.BackupExplorer/Assets/trash_icon_246188.png" />
+        <Label Margin="0,14,0,0" Content="{Binding AllBackupsWasted, Converter={StaticResource FileSizeConverter}}"></Label>
+      </StackPanel>
     </Grid>
     <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto, Auto, *" RowDefinitions="Auto,30,30" Margin="0,5,0,0">
       <ProgressBar DockPanel.Dock="Bottom" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"  Margin="0 10" Height="35"

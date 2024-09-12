@@ -7,6 +7,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Data;
+    using System.Data.Common;
     using BlockID = long;
     using BlocksetID = long;
     using File = Model.File;
@@ -19,7 +20,7 @@
         private List<File> _filesCache = [];
         private Dictionary<BlockID, Block> _blocksCache = [];
         private Dictionary<BlocksetID, HashSet<Block>> _blocksetCache = [];
-        private readonly Dictionary<string, int> _databaseVersion = new();
+        private readonly Dictionary<string, int> _databaseVersion = [];
 
         public DuplicatiDatabase()
         {
@@ -39,6 +40,81 @@
             var versions = string.Join(",", _databaseVersion.Keys);
             throw new InvalidOperationException($"Database version {dbVersion} not supported. Supported Duplicati versions: {versions}");
         }
+
+        public long WastedSpaceSum()
+        {
+            CheckConnectionNotNull();
+
+            using var cmd = _conn!.CreateCommand();
+            cmd.CommandText = @"SELECT SUM(Size) AS InactiveSize FROM DeletedBlock";
+
+            using var reader = cmd.ExecuteReader();
+            reader.Read();
+            if (reader.IsDBNull(0))
+                return 0;
+
+            return reader.GetInt64(0);
+        }
+
+        /*
+        private struct VolumeUsage
+        {
+            public readonly string Name;
+            public readonly long DataSize;
+            public readonly long WastedSize;
+            public readonly long CompressedSize;
+
+            public VolumeUsage(string name, long datasize, long wastedsize, long compressedsize)
+            {
+                this.Name = name;
+                this.DataSize = datasize;
+                this.WastedSize = wastedsize;
+                this.CompressedSize = compressedsize;
+            }
+        }
+
+        private IEnumerable<VolumeUsage> GetWastedSpaceReport(System.Data.IDbTransaction transaction)
+        {
+            var a = Guid.NewGuid().ToString();
+            var tmptablename = "UsageReport-" + a;
+
+            var usedBlocks = @"SELECT SUM(Block.Size) AS ActiveSize, Block.VolumeID AS VolumeID FROM Block, Remotevolume
+                                WHERE Block.VolumeID = Remotevolume.ID AND Block.ID NOT IN 
+                                    (SELECT Block.ID FROM Block,DeletedBlock WHERE Block.Hash = DeletedBlock.Hash AND Block.Size = DeletedBlock.Size AND Block.VolumeID = DeletedBlock.VolumeID)
+                                GROUP BY Block.VolumeID ";
+            var lastmodifiedFile = @"SELECT Block.VolumeID AS VolumeID, Fileset.Timestamp AS Sorttime FROM Fileset, FilesetEntry, FileLookup, BlocksetEntry, Block WHERE FilesetEntry.FileID = FileLookup.ID AND FileLookup.BlocksetID = BlocksetEntry.BlocksetID AND BlocksetEntry.BlockID = Block.ID AND Fileset.ID = FilesetEntry.FilesetID ";
+            var lastmodifiedMetadata = @"SELECT Block.VolumeID AS VolumeID, Fileset.Timestamp AS Sorttime FROM Fileset, FilesetEntry, FileLookup, BlocksetEntry, Block, Metadataset WHERE FilesetEntry.FileID = FileLookup.ID AND FileLookup.MetadataID = Metadataset.ID AND Metadataset.BlocksetID = BlocksetEntry.BlocksetID AND BlocksetEntry.BlockID = Block.ID AND Fileset.ID = FilesetEntry.FilesetID ";
+            var scantime = @"SELECT VolumeID AS VolumeID, MIN(Sorttime) AS Sorttime FROM (" + lastmodifiedFile + @" UNION " + lastmodifiedMetadata + @") GROUP BY VolumeID ";
+            var active = @"SELECT A.ActiveSize AS ActiveSize,  0 AS InactiveSize, A.VolumeID AS VolumeID, CASE WHEN B.Sorttime IS NULL THEN 0 ELSE B.Sorttime END AS Sorttime FROM (" + usedBlocks + @") A LEFT OUTER JOIN (" + scantime + @") B ON B.VolumeID = A.VolumeID ";
+
+            var inactive = @"SELECT 0 AS ActiveSize, SUM(Size) AS InactiveSize, VolumeID AS VolumeID, 0 AS SortScantime FROM DeletedBlock GROUP BY VolumeID ";
+            var empty = @"SELECT 0 AS ActiveSize, 0 AS InactiveSize, Remotevolume.ID AS VolumeID, 0 AS SortScantime FROM Remotevolume WHERE Remotevolume.Type = ? AND Remotevolume.State IN (?, ?) AND Remotevolume.ID NOT IN (SELECT VolumeID FROM Block) ";
+
+            var combined = active + " UNION " + inactive + " UNION " + empty;
+            var collected = @"SELECT VolumeID AS VolumeID, SUM(ActiveSize) AS ActiveSize, SUM(InactiveSize) AS InactiveSize, MAX(Sorttime) AS Sorttime FROM (" + combined + @") GROUP BY VolumeID ";
+            var createtable = @"CREATE TEMPORARY TABLE " + tmptablename + @" AS " + collected;
+
+            using (var cmd = _conn.CreateCommand())
+            {
+                try
+                {
+                    cmd.ExecuteNonQuery(createtable, RemoteVolumeType.Blocks.ToString(), RemoteVolumeState.Uploaded.ToString(), RemoteVolumeState.Verified.ToString());
+                    using (var rd = cmd.ExecuteReader(string.Format(@"SELECT A.Name, B.ActiveSize, B.InactiveSize, A.Size FROM Remotevolume A, {0} B WHERE A.ID = B.VolumeID ORDER BY B.Sorttime ASC ", tmptablename)))
+                        while (rd.Read())
+                            yield return new VolumeUsage(rd.GetValue(0).ToString(),
+                                                         rd.ConvertValueToInt64(1, 0) + rd.ConvertValueToInt64(2, 0),
+                                                         rd.ConvertValueToInt64(2, 0),
+                                                         rd.ConvertValueToInt64(3, 0),
+                                                         );
+                }
+                finally
+                {
+                    try { cmd.ExecuteNonQuery(string.Format(@"DROP TABLE IF EXISTS {0} ", tmptablename)); }
+                    catch { }
+                }
+            }
+        }
+        */
 
         public void Open(string filepath)
         {
@@ -324,7 +400,10 @@
 
         public HashSet<Block> GetBlocksByBlocksetId(BlocksetID blocksetId)
         {
-            return _blocksetCache[blocksetId];
+            HashSet<Block>? blocks;
+            if (_blocksetCache.TryGetValue(blocksetId, out blocks))
+                return blocks;
+            return new HashSet<Block>();
         }
 
         async public Task<List<Block>> GetBlocks(IEnumerable<BlockID> blockIds)
