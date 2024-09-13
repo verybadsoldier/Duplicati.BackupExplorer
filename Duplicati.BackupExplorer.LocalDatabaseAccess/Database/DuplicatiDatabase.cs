@@ -4,6 +4,7 @@
     using Microsoft.Data.Sqlite;
     using Microsoft.VisualBasic;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Data;
     using BlockID = long;
@@ -258,6 +259,8 @@
         {
             CheckConnectionNotNull();
 
+            _blocksetCache = GetBlocksets().ToDictionary(x => x.Id, y => new HashSet<Block>());
+
             using var cmd = _conn!.CreateCommand();
             cmd.CommandText = @"
             SELECT
@@ -265,8 +268,6 @@
             FROM 
                 BlocksetEntry
             ";
-
-            _blocksetCache = [];
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
@@ -300,6 +301,25 @@
             using var reader = await cmd.ExecuteReaderAsync();
             await reader.ReadAsync();
             return new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) };
+        }
+
+        public IEnumerable<Blockset> GetBlocksets()
+        {
+            CheckConnectionNotNull();
+
+            using var cmd = _conn!.CreateCommand();
+            cmd.CommandText = @"
+            SELECT
+                ID, Length, FullHash
+            FROM 
+                Blockset
+            ";
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                yield return new Blockset { Id = reader.GetInt64(0), Length = reader.GetInt64(1), FullHash  = reader.GetString(2)};
+            }
         }
 
         public HashSet<Block> GetBlocksByBlocksetId(BlocksetID blocksetId)
