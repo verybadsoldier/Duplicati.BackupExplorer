@@ -22,7 +22,7 @@ Duplicati is using a deduplication process to minimize the data that has to be u
 
 1. Launch the Duplicati BackupExplorer application.
 2. Click on the button `Select Database`.
-3. Browse to the location of your Duplicati database file (on Windows `%USERPROFILE%\AppData\Local\Duplicati` and Lon inux it's `~/.config/Duplicati`) and open it.
+3. Browse to the location of your Duplicati database file (on Windows `%USERPROFILE%\AppData\Local\Duplicati` and on Linux it's `~/.config/Duplicati`) and open it. Do not pick the database name `Duplicati-server.sqlite`. Pick one of the randomly named databases. Every one of them represents one of Duplicati's backup jobs.
 
 ### Exploring Backups
 
