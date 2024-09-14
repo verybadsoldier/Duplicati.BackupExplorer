@@ -6,7 +6,7 @@
 
         public long Length { get; set; }
 
-        public string FullHash { get; set; }
+        public string FullHash { get; set; } = string.Empty;
 
 
         public override bool Equals(object? obj)
