@@ -4,9 +4,10 @@ using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 {
-    public class Comparer(DuplicatiDatabase database)
+    public class Comparer(DuplicatiDatabase database, DBTaskScheduler dbTaskScheduler)
     {
         private readonly DuplicatiDatabase _database = database;
+        private readonly DBTaskScheduler _dbTaskScheduler = dbTaskScheduler;
 
         public delegate void BlocksCompareFinished();
 
@@ -14,17 +15,21 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         async public Task<HashSet<Block>> GetBlockIdsForFileset(Fileset fs)
         {
-            List<FilesetEntry> fsEntries = _database.GetFilesetEntriesById(fs.Id);
-
-            var files = fsEntries.Select(x => _database.GetFileById(x.FileId)).ToList();
-            var blockIds = files.SelectMany(x => _database.GetBlockIdsByBlocksetId(x.BlocksetId));
-            var blocks = new HashSet<Block>();
-            foreach (var blockId in blockIds)
+            return await Task.Factory.StartNew(
+            async () =>
             {
-                var a = await _database.GetBlock(blockId);
-                blocks.Add(a);
-            }
-            return blocks;
+                List<FilesetEntry> fsEntries = _database.GetFilesetEntriesById(fs.Id);
+
+                var files = fsEntries.Select(x => _database.GetFileById(x.FileId)).ToList();
+                var blockIds = files.SelectMany(x => _database.GetBlockIdsByBlocksetId(x.BlocksetId));
+                var blocks = new HashSet<Block>();
+                foreach (var blockId in blockIds)
+                {
+                    var a = await _database.GetBlock(blockId);
+                    blocks.Add(a);
+                }
+                return blocks;
+            }, CancellationToken.None, TaskCreationOptions.None, _dbTaskScheduler).Unwrap();
         }
 
         async public Task<CompareResult> CompareFilesets(Fileset fs1, Fileset fs2)
@@ -69,27 +74,32 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         async public Task CompareFiletrees(FileTree left, IEnumerable<FileTree> rightFss)
         {
-            var rightBlocks = new List<Block>();
-            var blockIds = new HashSet<long>();
-            foreach (var rightF in rightFss)
+            var rightBlocks = await Task.Factory.StartNew(
+            async () =>
             {
-                foreach (var rightFs in rightF.GetFileNodes())
+                var rightBlocks = new List<Block>();
+                var blockIds = new HashSet<long>();
+                foreach (var rightF in rightFss)
                 {
-                    if (!rightFs.BlocksetId.HasValue)
-                        throw new InvalidOperationException($"File {rightFs.FullPath} has no blockset ID");
+                    foreach (var rightFs in rightF.GetFileNodes())
+                    {
+                        if (!rightFs.BlocksetId.HasValue)
+                            throw new InvalidOperationException($"File {rightFs.FullPath} has no blockset ID");
 
-                    var f = _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value);
-                    blockIds.UnionWith(f);
+                        var f = _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value);
+                        blockIds.UnionWith(f);
+                    }
                 }
-            }
 
-            rightBlocks.AddRange(await _database.GetBlocks(blockIds));
-
+                rightBlocks.AddRange(await _database.GetBlocks(blockIds));
+                return rightBlocks;
+            }, CancellationToken.None, TaskCreationOptions.None, _dbTaskScheduler).Unwrap();
             var rightSet = new HashSet<Block>(rightBlocks);
-            await Task.Run(() => CompareFiletreeWithBlocks(left, rightSet));
+            await _dbTaskScheduler.Run(() => CompareFiletreeWithBlocks(left, rightSet));
         }
 
-        public void CompareFiletreeWithBlocks(FileTree left, HashSet<Block> rightBlocks)
+        // Has to run on DB thread
+        private void CompareFiletreeWithBlocks(FileTree left, HashSet<Block> rightBlocks)
         {
             var rightSizeSum = rightBlocks.Sum(x => x.Size);
 

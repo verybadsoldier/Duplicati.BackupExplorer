@@ -1,8 +1,10 @@
 ﻿namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database
 {
     using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
+    using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
     using Microsoft.Data.Sqlite;
     using Microsoft.VisualBasic;
+    using SQLitePCL;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -17,8 +19,7 @@
         private SqliteConnection? _conn;
         private readonly Dictionary<BlocksetID, List<BlockID>> _blocklistIdCache = [];
         private bool _disposed = false;
-        private List<File> _filesCache = [];
-        private Dictionary<BlockID, Block> _blocksCache = [];
+        public const int MAX_CACHE_SIZE = 1000;
         private Dictionary<BlocksetID, HashSet<Block>> _blocksetCache = [];
         private readonly HashSet<int> _supportedDatabaseVersions = [12, 13];
         private readonly HashSet<int> _unsupportedDatabaseVersions = [];
@@ -134,8 +135,6 @@
 
         public void InitCaches()
         {
-            InitFilesCache();
-            InitBlocksCache();
             InitBlocksetCache();
         }
 
@@ -276,10 +275,32 @@
             return new File { Id = fileId, BlocksetId = reader.GetInt32(0), Path = reader.GetString(1), Prefix = reader.GetString(2), MetadataId = reader.GetInt64(3) };
         }
 
-        public List<File> GetFilesByIds4(IEnumerable<long> fileIds)
+        public List<File> GetFilesInFileset(long filesetId)
         {
-            var ids = fileIds.ToHashSet();
-            return _filesCache.Where(x => ids.Contains(x.Id)).ToList();
+            CheckConnectionNotNull();
+
+            // Too big for cache, query from database
+            using var cmd = _conn!.CreateCommand();
+            cmd.CommandText = @"
+                SELECT
+                    F.ID, F.BlocksetID, Path, pp.Prefix, MetadataID
+                FROM 
+                    FileLookup F
+                LEFT JOIN
+	                PathPrefix pp ON pp.ID = F.PrefixID
+                WHERE
+	                F.ID IN (SELECT FileID FROM FilesetEntry WHERE FilesetID = @filesetId);";
+            cmd.Parameters.AddWithValue("@filesetId", filesetId);
+
+            var files = new List<File>();
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                files.Add(new File { Id = reader.GetInt64(0), BlocksetId = reader.GetInt32(1), Path = reader.GetString(2), Prefix = reader.GetString(3), MetadataId = reader.GetInt64(4) });
+            }
+            files.Sort((x, y) => (x.Prefix + x.Path).CompareTo(y.Prefix + y.Path));
+            return files;
         }
 
         public int GetVersion()
@@ -299,56 +320,17 @@
         }
 
 
-        public void InitFilesCache()
-        {
-            CheckConnectionNotNull();
-
-            using var cmd = _conn!.CreateCommand();
-            cmd.CommandText = @"
-                SELECT
-                    F.ID, F.BlocksetID, Path, pp.Prefix, MetadataID
-                FROM 
-                    FileLookup F
-                LEFT JOIN
-	                PathPrefix pp ON pp.ID = F.PrefixID";
-
-            var unsortedFiles = new List<File>();
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                unsortedFiles.Add(new File { Id = reader.GetInt64(0), BlocksetId = reader.GetInt32(1), Path = reader.GetString(2), Prefix = reader.GetString(3), MetadataId = reader.GetInt64(4) });
-            }
-
-            _filesCache = [.. unsortedFiles.OrderBy(x => x.Prefix + x.Path)];
-        }
-
         public void InitBlocksCache()
         {
             CheckConnectionNotNull();
 
-            using var cmd = _conn!.CreateCommand();
-            cmd.CommandText = @"
-            SELECT
-                ID, Size, VolumeID
-            FROM 
-                Block";
-
-            _blocksCache = [];
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                var blockId = reader.GetInt64(0);
-                _blocksCache.Add(blockId, new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) });
-            }
         }
 
         public void InitBlocksetCache()
         {
             CheckConnectionNotNull();
 
-            _blocksetCache = GetBlocksets().ToDictionary(x => x.Id, y => new HashSet<Block>());
+            _blocksetCache = GetBlocksets().Take(MAX_CACHE_SIZE).ToDictionary(x => x.Id, y => new HashSet<Block>());
 
             using var cmd = _conn!.CreateCommand();
             cmd.CommandText = @"
@@ -357,8 +339,16 @@
             FROM 
                 BlocksetEntry
             ";
+            using var cmd2 = _conn!.CreateCommand();
+            cmd2.CommandText = @"
+                SELECT
+                    ID, Size, VolumeID
+                FROM 
+                    Block
+                WHERE ID=@blockId";
 
             using var reader = cmd.ExecuteReader();
+            var blockIdParam = cmd2.Parameters.Add("@blockId", SqliteType.Integer);
             while (reader.Read())
             {
                 var blocksetID = reader.GetInt64(0);
@@ -366,10 +356,21 @@
 
                 if (!_blocksetCache.TryGetValue(blocksetID, out HashSet<Block>? hset))
                 {
-                    hset = [];
-                    _blocksetCache[blocksetID] = hset;
+                    // Did not fit in cache
+                    continue;
                 }
-                hset.Add(_blocksCache[blockID]);
+
+                blockIdParam.Value = blockID;
+
+                using var reader2 = cmd2.ExecuteReader();
+                if (reader2.Read())
+                {
+                    hset.Add(new Block { Id = reader2.GetInt64(0), Size = reader2.GetInt64(1), VolumeId = reader2.GetInt64(2) });
+                    if (hset.Count > MAX_CACHE_SIZE)
+                    {
+                        _blocksetCache.Remove(blocksetID);
+                    }
+                }
             }
         }
 
@@ -407,7 +408,7 @@
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                yield return new Blockset { Id = reader.GetInt64(0), Length = reader.GetInt64(1), FullHash  = reader.GetString(2)};
+                yield return new Blockset { Id = reader.GetInt64(0), Length = reader.GetInt64(1), FullHash = reader.GetString(2) };
             }
         }
 
@@ -415,8 +416,36 @@
         {
             HashSet<Block>? blocks;
             if (_blocksetCache.TryGetValue(blocksetId, out blocks))
+            {
                 return blocks;
-            return new HashSet<Block>();
+            }
+            else
+            {
+                CheckConnectionNotNull();
+                blocks = new HashSet<Block>();
+
+                using var cmd = _conn!.CreateCommand();
+                cmd.CommandText = @"
+                SELECT
+                    B.ID, B.Size, B.VolumeID
+                FROM 
+                    Block B
+                JOIN
+                    BlocksetEntry S
+                ON
+                    S.BlockID = B.ID
+                WHERE
+                    S.BlocksetID=@blocksetid;
+                ";
+                cmd.Parameters.AddWithValue("@blocksetid", blocksetId);
+
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    blocks.Add(new Block { Id = reader.GetInt64(0), Size = reader.GetInt64(1), VolumeId = reader.GetInt64(2) });
+                }
+                return blocks;
+            }
         }
 
         async public Task<List<Block>> GetBlocks(IEnumerable<BlockID> blockIds)
@@ -473,6 +502,40 @@
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        public long GetFilesetSize(long filesetId)
+        {
+            CheckConnectionNotNull();
+            using var cmd = _conn!.CreateCommand();
+            // Get the sum of all recorded file sizes in the fileset
+            cmd.CommandText = @"
+            SELECT
+                SUM(S.Length)
+            FROM
+                Blockset S
+            JOIN
+                FileLookup L
+            ON
+                L.BlocksetID = S.ID
+            WHERE
+                L.ID
+            IN (SELECT FileID FROM FilesetEntry WHERE FilesetID = @filesetId)";
+            cmd.Parameters.AddWithValue("@filesetId", filesetId);
+            return (long)(cmd.ExecuteScalar() ?? 0);
+        }
+
+        public long GetTotalSize()
+        {
+
+            CheckConnectionNotNull();
+            using var cmd = _conn!.CreateCommand();
+            cmd.CommandText = @"
+                SELECT
+                    SUM(Size)
+                FROM 
+                    Block";
+            return (long)(cmd.ExecuteScalar() ?? 0);
         }
     }
 

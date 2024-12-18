@@ -8,11 +8,14 @@ using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.ViewModels;
 using Duplicati.BackupExplorer.Views;
 using System;
+using System.Threading;
 
 namespace Duplicati.BackupExplorer;
 
 public partial class App : Application
 {
+    private readonly CancellationTokenSource _dbCancellation = new CancellationTokenSource();
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -25,7 +28,8 @@ public partial class App : Application
         BindingPlugins.DataValidators.RemoveAt(0);
 
         var db = new DuplicatiDatabase();
-        var comparer = new Comparer(db);
+        var dbTaskScheduler = new DBTaskScheduler(_dbCancellation.Token);
+        var comparer = new Comparer(db, dbTaskScheduler);
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -37,7 +41,8 @@ public partial class App : Application
             if (desktop.MainWindow?.StorageProvider is not { } provider)
                 throw new InvalidOperationException("Missing StorageProvider instance.");
 
-            desktop.MainWindow.DataContext = new MainViewModel(db, comparer, provider);
+            desktop.MainWindow.DataContext = new MainViewModel(db, dbTaskScheduler, comparer, provider);
+            desktop.ShutdownRequested += (s,e) => _dbCancellation.Cancel();
 
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
@@ -46,8 +51,10 @@ public partial class App : Application
             singleViewPlatform.MainView = wnd;
 
             var topLevel = TopLevel.GetTopLevel(wnd) ?? throw new InvalidOperationException("No TopLevel");
-            wnd.DataContext = new MainViewModel(db, comparer, topLevel.StorageProvider);
+            wnd.DataContext = new MainViewModel(db, dbTaskScheduler, comparer, topLevel.StorageProvider);
+            wnd.Unloaded += (s, e) => _dbCancellation.Cancel();
         }
+        dbTaskScheduler.Start();
 
         base.OnFrameworkInitializationCompleted();
     }
