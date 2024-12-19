@@ -1,6 +1,7 @@
 ﻿using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
+using System.Collections.Generic;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 {
@@ -15,7 +16,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         async public Task<HashSet<Block>> GetBlockIdsForFileset(Fileset fs)
         {
-            return await Task.Factory.StartNew(
+            return await _dbTaskScheduler.Run(
             async () =>
             {
                 List<FilesetEntry> fsEntries = _database.GetFilesetEntriesById(fs.Id);
@@ -29,7 +30,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
                     blocks.Add(a);
                 }
                 return blocks;
-            }, CancellationToken.None, TaskCreationOptions.None, _dbTaskScheduler).Unwrap();
+            }).Unwrap();
         }
 
         async public Task<CompareResult> CompareFilesets(Fileset fs1, Fileset fs2)
@@ -74,26 +75,21 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         async public Task CompareFiletrees(FileTree left, IEnumerable<FileTree> rightFss)
         {
-            var rightBlocks = await Task.Factory.StartNew(
-            async () =>
+            var rightBlocks = new List<Block>();
+            var blockIds = new HashSet<long>();
+            foreach (var rightF in rightFss)
             {
-                var rightBlocks = new List<Block>();
-                var blockIds = new HashSet<long>();
-                foreach (var rightF in rightFss)
+                foreach (var rightFs in rightF.GetFileNodes())
                 {
-                    foreach (var rightFs in rightF.GetFileNodes())
-                    {
-                        if (!rightFs.BlocksetId.HasValue)
-                            throw new InvalidOperationException($"File {rightFs.FullPath} has no blockset ID");
+                    if (!rightFs.BlocksetId.HasValue)
+                        throw new InvalidOperationException($"File {rightFs.FullPath} has no blockset ID");
 
-                        var f = _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value);
-                        blockIds.UnionWith(f);
-                    }
+                    var f = await _dbTaskScheduler.Run(() => _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value));
+                    blockIds.UnionWith(f);
                 }
+            }
 
-                rightBlocks.AddRange(await _database.GetBlocks(blockIds));
-                return rightBlocks;
-            }, CancellationToken.None, TaskCreationOptions.None, _dbTaskScheduler).Unwrap();
+            rightBlocks.AddRange(await _dbTaskScheduler.Run(() => _database.GetBlocks(blockIds)).Unwrap());
             var rightSet = new HashSet<Block>(rightBlocks);
             await _dbTaskScheduler.Run(() => CompareFiletreeWithBlocks(left, rightSet));
         }

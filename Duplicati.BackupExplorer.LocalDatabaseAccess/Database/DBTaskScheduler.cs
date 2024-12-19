@@ -4,9 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Collections.Specialized.BitVector32;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="cancellationToken"></param>
     public class DBTaskScheduler(CancellationToken cancellationToken) : TaskScheduler
     {
         [ThreadStatic]
@@ -17,10 +22,10 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database
 
         public void Start()
         {
-            new Thread(Run) { Name = "DB Thread" }.Start();
+            new Thread(RunThread) { Name = "DB Thread" }.Start();
         }
 
-        private void Run()
+        private void RunThread()
         {
             _isExecuting = true;
             try
@@ -38,6 +43,11 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Database
         public Task Run(Action action)
         {
             return Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, this);
+        }
+
+        public Task<T> Run<T>(Func<T> func)
+        {
+            return Task.Factory.StartNew(func, CancellationToken.None, TaskCreationOptions.None, this);
         }
 
         protected override IEnumerable<Task>? GetScheduledTasks() { return null; }

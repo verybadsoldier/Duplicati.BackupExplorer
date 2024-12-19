@@ -31,6 +31,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             }
             set
             {
+                // Allow setting a pre-calculated size without needing to load the full tree
                 size = value;
             }
         }
