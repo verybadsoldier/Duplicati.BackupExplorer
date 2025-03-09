@@ -344,7 +344,7 @@ public partial class MainViewModel : ViewModelBase
 
                 using (_loadProjectCancellation = new CancellationTokenSource())
                 {
-                    ProjectFilename = storageFile.Path.AbsolutePath;
+                    ProjectFilename = storageFile.Path.LocalPath;
 
                     IsProjectLoaded = false;
                     LoadButtonLabel = "Cancel";
@@ -356,6 +356,19 @@ public partial class MainViewModel : ViewModelBase
 
                     try
                     {
+                        Progress = 3;
+                        ProgressTextFormat = $"Opening database... ({{1:0}} %)";
+
+                        await Task.Run(() => _database.Open(ProjectFilename));
+                  
+                        _database.CheckUnsupportedDatabaseVersion();
+
+                        if (!_database.CheckSupportedDatabaseVersion())
+                        {
+                            var box = MessageBoxManager.GetMessageBoxStandard("Unknown Database Version", $"The database version ({_database.GetVersion()}) of the selected file ({storageFile.Path}) is unknown and therefore not tested. If you encounter problems, feel free to open an issue on Github.", ButtonEnum.Ok, Icon.Warning);
+                            await box.ShowAsPopupAsync((Window)parent);
+                        }
+
                         await Task.Run(LoadBackups);
 
                         IsProjectLoaded = true;
@@ -399,12 +412,7 @@ public partial class MainViewModel : ViewModelBase
 
     void LoadBackups()
     {
-        Progress = 3;
-        ProgressTextFormat = $"Opening database... ({{1:0}} %)";
-
-        _database.Open(ProjectFilename);
-
-        _database.CheckDatabaseCompatibility(_database.GetVersion());
+        _database.InitCaches();
 
         Progress = 10;
 

@@ -20,26 +20,37 @@
         private List<File> _filesCache = [];
         private Dictionary<BlockID, Block> _blocksCache = [];
         private Dictionary<BlocksetID, HashSet<Block>> _blocksetCache = [];
-        private readonly Dictionary<string, int> _databaseVersion = [];
+        private readonly HashSet<int> _supportedDatabaseVersions = [12, 13];
+        private readonly HashSet<int> _unsupportedDatabaseVersions = [];
 
         public DuplicatiDatabase()
         {
-            _databaseVersion  = new Dictionary<string, int>()
-            {
-                { "2.0.8", 12 },
-            };
         }
 
-        public void CheckDatabaseCompatibility(int dbVersion)
+        /// <summary>
+        /// Check if the database version is explicitly unsupported. Fail if it is.
+        /// </summary>
+        /// <param name="dbVersion">Database version to check</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void CheckUnsupportedDatabaseVersion()
         {
-            foreach (var kvp in _databaseVersion)
+            var dbVersion = GetVersion();
+            if (_unsupportedDatabaseVersions.Contains(dbVersion))
             {
-                if (kvp.Value == dbVersion)
-                    return;
+                throw new InvalidOperationException($"Database version {dbVersion} is not supported. Supported database versions: {_supportedDatabaseVersions}. Please use a different version of Duplicati or open a GitHub issue for a request.");
             }
-            var versions = string.Join(",", _databaseVersion.Keys);
-            throw new InvalidOperationException($"Database version {dbVersion} not supported. Supported Duplicati versions: {versions}");
         }
+
+        /// <summary>
+        /// Check if the database version is explicitly supported. 
+        /// </summary>
+        /// <param name="dbVersion">Database version to check</param>
+        /// <returns></returns>
+        public bool CheckSupportedDatabaseVersion()
+        {
+            return _supportedDatabaseVersions.Contains(GetVersion());
+        }
+
 
         public long WastedSpaceSum()
         {
@@ -118,14 +129,11 @@
 
         public void Open(string filepath)
         {
-            if (!System.IO.File.Exists(filepath))
-            {
-                Console.WriteLine($"Database file {filepath} does not exist.");
-                Environment.Exit(1);
-            }
-
             _conn = OpenInMemory(filepath);
+        }
 
+        public void InitCaches()
+        {
             InitFilesCache();
             InitBlocksCache();
             InitBlocksetCache();
@@ -133,14 +141,19 @@
 
         private static SqliteConnection OpenInMemory(string filePath)
         {
-            string inMemoryConnectionString = "Data Source=:memory:;";
-
             // Open the file-based database connection
-            using var fileConnection = new SqliteConnection($"Data Source={filePath};Mode=ReadOnly;");
+            SqliteConnectionStringBuilder fileConnectionBuilder = new SqliteConnectionStringBuilder();
+            fileConnectionBuilder["Data Source"] = filePath;
+            fileConnectionBuilder["Mode"] = "ReadOnly";
+
+            using var fileConnection = new SqliteConnection(fileConnectionBuilder.ConnectionString);
             fileConnection.Open();
 
             // Create an in-memory database connection
-            var memoryConnection = new SqliteConnection(inMemoryConnectionString);
+            SqliteConnectionStringBuilder memoryConnectionBuilder = new SqliteConnectionStringBuilder();
+            memoryConnectionBuilder["Data Source"] = ":memory:";
+
+            var memoryConnection = new SqliteConnection(memoryConnectionBuilder.ConnectionString);
             memoryConnection.Open();
 
             // Backup the file-based database to the in-memory database
