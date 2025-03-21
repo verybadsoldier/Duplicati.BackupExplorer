@@ -1,7 +1,6 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using Duplicati.BackupExplorer.LocalDatabaseAccess;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
@@ -10,7 +9,6 @@ using Duplicati.BackupExplorer.Views;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -42,10 +40,10 @@ public partial class MainViewModel : ViewModelBase
     private readonly DuplicatiDatabase _database;
 
     private readonly Comparer _comparer;
-    private const int MAX_LOADED_FILESETS = 5;
+
     private IStorageProvider _provider;
 
-    private bool _isProcessing = false;
+    private bool _isProcessingCompare = false;
 
     private FileTree? _leftSide = null;
     private FileTree? _rightSide = null;
@@ -68,14 +66,13 @@ public partial class MainViewModel : ViewModelBase
     private long? _allBackupsWasted;
 
     private CancellationTokenSource? _loadProjectCancellation;
-    private readonly DBTaskScheduler _dbTaskScheduler;
 
     private bool _isLoadingDatabase = false;
-    private readonly LinkedList<long> _loadedTrees = [];
-    private readonly EventWaitHandle _loadingWait = new(false, EventResetMode.ManualReset);
-    private Backup? _loadingFileTree = null;
+    private bool _isLoadingBackup = false;
 
-    public MainViewModel(DuplicatiDatabase database, DBTaskScheduler dbTaskScheduler, Comparer comparer, IStorageProvider provider)
+    private List<Backup> _loadedBackups = new();
+
+    public MainViewModel(DuplicatiDatabase database, Comparer comparer, IStorageProvider provider)
     {
         _database = database;
 
@@ -91,9 +88,6 @@ public partial class MainViewModel : ViewModelBase
         WindowTitle = $"Duplicati BackupExplorer - v{version}";
 
         SelectedBackups.CollectionChanged += SelectedBackups_CollectionChanged;
-
-        // All database accesses should occur on this scheduler to prevent race conditions
-        _dbTaskScheduler = dbTaskScheduler;
     }
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -129,6 +123,14 @@ public partial class MainViewModel : ViewModelBase
         AllBackupsWasted = 154352345345;
     }
 
+    public bool IsLoadingBackup { get { return _isLoadingBackup; } set { _isLoadingBackup = value; OnPropertyChanged(nameof(IsLoadingBackup)); } }
+
+    public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged(nameof(IsProjectLoaded)); } }
+
+    public bool IsLoadingDatabase { get { return _isLoadingDatabase; } set { _isLoadingDatabase = value; OnPropertyChanged(nameof(IsLoadingDatabase)); } }
+
+    public bool IsProcessingCompare { get { return _isProcessingCompare; } set { _isProcessingCompare = value; OnPropertyChanged(nameof(IsProcessingCompare)); } }
+
     public string ProjectFilename { get { return _projectFilename; } set { _projectFilename = value; OnPropertyChanged(nameof(ProjectFilename)); } }
 
     public long? AllBackupsSize { get { return _allBackupsSize; } set { _allBackupsSize = value; OnPropertyChanged(nameof(AllBackupsSize)); } }
@@ -137,8 +139,6 @@ public partial class MainViewModel : ViewModelBase
     public IBrush ButtonSelectDatabaseColor { get { return _buttonSelectDatabaseColor; } set { _buttonSelectDatabaseColor = value; OnPropertyChanged(nameof(ButtonSelectDatabaseColor)); } }
 
     public bool IsCompareElementsSelected { get { return _isCompareElementsSelected; } set { _isCompareElementsSelected = value; OnPropertyChanged(nameof(IsCompareElementsSelected)); } }
-
-    public bool IsProjectLoaded { get { return _isProjectLoaded; } set { _isProjectLoaded = value; OnPropertyChanged(nameof(IsProjectLoaded)); } }
 
     public FileTree FileTree { get { return _fileTree; } set { _fileTree = value; OnPropertyChanged(nameof(FileTree)); } }
 
@@ -154,13 +154,9 @@ public partial class MainViewModel : ViewModelBase
     public double Progress { get { return _progress; } set { _progress = value; OnPropertyChanged(nameof(Progress)); } }
     public string ProgressTextFormat { get { return _progressTextFormat; } set { _progressTextFormat = value; OnPropertyChanged(nameof(ProgressTextFormat)); } }
 
-    public bool IsLoadingDatabase { get { return _isLoadingDatabase; } set { _isLoadingDatabase = value; OnPropertyChanged(nameof(IsLoadingDatabase)); } }
-
     public FileTree? LeftSide { get { return _leftSide; } set { _leftSide = value; OnPropertyChanged(nameof(LeftSide)); } }
     public FileTree? RightSide { get { return _rightSide; } set { _rightSide = value; OnPropertyChanged(nameof(RightSide)); } }
 
-
-    public bool IsProcessing { get { return _isProcessing; } set { _isProcessing = value; OnPropertyChanged(nameof(IsProcessing)); } }
 
     public string WindowTitle { get; set; }
 
@@ -172,22 +168,37 @@ public partial class MainViewModel : ViewModelBase
         ProgressVisible = show;
     }
 
-    private void SelectedBackups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    private async void SelectedBackups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
         if (SelectedBackups.Count > 0)
         {
             var backup = SelectedBackups[0];
             if (backup.FileTree == null)
             {
-                //throw new InvalidOperationException("No FileTree in backup");
-                FileTree = new("Loading...");
-                _loadingFileTree = backup;
-                _loadingWait.Set();
+                IsLoadingBackup = true;
+                ShowProgressBar(true);
+                Progress = 50;
+                ProgressTextFormat = $"Processing files... ({{1:0}} %)";
+                var fileTree = await Task.Run(() => LoadFileTree(backup.Fileset, 50));
+                backup.FileTree = fileTree;
+
+                _loadedBackups.Add(backup);
+                if (_loadedBackups.Count > 0)
+                {
+                    long totalMem = GC.GetTotalMemory(false);
+                    if (totalMem >= 5_000_000_000)
+                    {
+                        // Release memory if more than 5 GB are used
+                        _loadedBackups[0].FileTree = null;
+                        _loadedBackups.RemoveAt(0);
+                    }
+                }
+
+                IsLoadingBackup = false;
+                ShowProgressBar(false);
             }
-            else
-            {
-                FileTree = backup.FileTree;
-            }
+
+            FileTree = backup.FileTree!;
         }
     }
 
@@ -196,17 +207,17 @@ public partial class MainViewModel : ViewModelBase
         _provider = provider;
     }
 
-    public Task SelectLeftSide(object? sender)
+    public void SelectLeftSide(object? sender)
     {
-        return SelectSide(sender, true);
+        SelectSide(sender, true);
     }
 
-    public Task SelectRightSide(object? sender)
+    public void SelectRightSide(object? sender)
     {
-        return SelectSide(sender, false);
+        SelectSide(sender, false);
     }
 
-    private async Task<FileTree> GetFileTreeFromSelection(object? selection)
+    private FileTree GetFileTreeFromSelection(object? selection)
     {
         FileTree? ft = null;
 
@@ -230,18 +241,10 @@ public partial class MainViewModel : ViewModelBase
         {
             ft = new FileTree();
 
-            ListBox listbox = box;
-
-            if (listbox.SelectedItem != null)
+            if (box.SelectedItem != null)
             {
-                var backup = (Backup)listbox.SelectedItem;
+                var backup = (Backup)box.SelectedItem;
                 ft = backup.FileTree;
-                if (ft == null)
-                {
-                    // Try to load fileset
-                    await _dbTaskScheduler.Run(() => LoadFileset(backup, 100.0));
-                    ft = backup.FileTree;
-                }
             }
         }
 
@@ -253,9 +256,9 @@ public partial class MainViewModel : ViewModelBase
         return ft;
     }
 
-    public async Task SelectSide(object? sender, bool left)
+    public void SelectSide(object? sender, bool left)
     {
-        var ft = await GetFileTreeFromSelection(sender);
+        var ft = GetFileTreeFromSelection(sender);
 
         if (left)
         {
@@ -274,12 +277,12 @@ public partial class MainViewModel : ViewModelBase
 
     async public Task CompareToAll(object? sender)
     {
-        IsProcessing = true;
+        IsProcessingCompare = true;
         ShowProgressBar(true);
 
-        var ftLeft = await GetFileTreeFromSelection(sender);
+        var ftLeft = GetFileTreeFromSelection(sender);
 
-        var progressStep = 100.0 / ftLeft.GetFileNodes().Count();
+        var progressStep = 50.0 / ftLeft.GetFileNodes().Count();
         _comparer.OnBlocksCompareFinished += () =>
         {
             Progress += progressStep;
@@ -287,27 +290,28 @@ public partial class MainViewModel : ViewModelBase
 
         Progress = 5;
 
+        int numFileTreesToLoad = Backups.Where(x => x.FileTree == null).Count();
+
         // Load each fileset individually as the collection is enumerated
         // This means not everything has to be in memory at the same time
+        int count = 0;
         await Task.Run(() => _comparer.CompareFiletrees(
             ftLeft,
             Backups.Select(x =>
             {
                 if (x.FileTree == null)
                 {
-                    return _dbTaskScheduler.Run(() =>
-                    {
-                        LoadFileset(x);
-                        return x.FileTree!;
-                    });
+                    ProgressTextFormat = $"Processing Backup '{x}' ({++count}/{numFileTreesToLoad})... ({{1:0}} %)";
+                    return LoadFileTree(x.Fileset, 50.0 / numFileTreesToLoad);
                 }
                 else
                 {
-                    return Task.FromResult(x.FileTree);
+                    return x.FileTree;
                 }
             })
             // Blocks for each result
-            .Select(t => t.Result).Where(x => x != ftLeft)));
+            .Where(x => x != ftLeft))
+        );
 
         ftLeft.UpdateDirectoryCompareResults();
 
@@ -319,7 +323,7 @@ public partial class MainViewModel : ViewModelBase
 
         dialog.Show();
 
-        IsProcessing = false;
+        IsProcessingCompare = false;
         ShowProgressBar(false);
     }
 
@@ -332,7 +336,7 @@ public partial class MainViewModel : ViewModelBase
         if (RightSide.Name == null)
             throw new InvalidOperationException("RightSide name not set");
 
-        IsProcessing = true;
+        IsProcessingCompare = true;
         ShowProgressBar(true);
 
         var progressStep = 100.0 / LeftSide.GetFileNodes().Count();
@@ -353,7 +357,7 @@ public partial class MainViewModel : ViewModelBase
 
         dialog.Show();
 
-        IsProcessing = false;
+        IsProcessingCompare = false;
         ShowProgressBar(false);
     }
 
@@ -407,10 +411,9 @@ public partial class MainViewModel : ViewModelBase
                             await box.ShowAsPopupAsync((Window)parent);
                         }
 
-                        await _dbTaskScheduler.Run(LoadBackups);
+                        await Task.Run(EnumerateBackups);
 
                         IsProjectLoaded = true;
-                        _ = Task.Run(() => LazyLoadFileTrees(CancellationToken.None));
                     }
                     catch (OperationCanceledException)
                     {
@@ -449,113 +452,44 @@ public partial class MainViewModel : ViewModelBase
         return files?.Count >= 1 ? files[0] : null;
     }
 
-    void LoadFileset(Backup backup, double detailedProgress = 0.0)
+    FileTree LoadFileTree(Fileset fileset, double progressPackage)
     {
-        if (backup.FileTree != null)
-        {
-            // Already loaded
-            return;
-        }
+        var fsentries = _database.GetFilesetEntriesById(fileset.Id);
+        var files = _database.GetFilesByIds(fsentries.Select(x => x.FileId));
+        var ft = new FileTree() { Name = $"Backup {fileset}" };
 
-        var ft = new FileTree() { Name = $"Backup {backup.Fileset}" };
-        ProgressTextFormat = $"Loading fileset {backup} ({{1:0}} %)";
+        var progStep = progressPackage / files.Count;
 
-        var files = _database.GetFilesInFileset(backup.Fileset.Id);
-
-        // Divide detailed progress into steps per file
-        detailedProgress /= files.Count;
-
+        long i = 0;
+        HashSet<Block> allBlocks = [];
         foreach (var file in files)
         {
+            if (i >= 4000)
+            { // update not too often for performance reasons
+                Progress += i * progStep;
+                i = 0;
+            }
+
             long? fileSize = null;
             if (file.BlocksetId >= 0)
             {
                 var blocks = _database.GetBlocksByBlocksetId(file.BlocksetId);
+                allBlocks.UnionWith(blocks);
+
                 fileSize = blocks.Sum(x => x.Size);
             }
 
+
             ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId, fileSize);
-            Progress += detailedProgress;
+            ++i;
         }
 
-        var node = _loadedTrees.Find(backup.Fileset.Id);
-        if (node != null)
-        {
-            // Move to front of queue
-            _loadedTrees.Remove(node);
-            _loadedTrees.AddFirst(node);
-        }
-        else
-        {
-            _loadedTrees.AddFirst(backup.Fileset.Id);
-            if (_loadedTrees.Count > MAX_LOADED_FILESETS)
-            {
-                // Unload the latest fileset
-                var id = _loadedTrees.Last!.Value;
-                var lastBackup = Backups.FirstOrDefault(b => b.Fileset.Id == id);
-                if (lastBackup != null)
-                {
-                    lastBackup.FileTree = null;
-                    _loadedTrees.RemoveLast();
-                }
-            }
-        }
-        backup.FileTree = ft;
+        Progress += i * progStep; // add remaining progress
 
-    }
-    void LoadFilesetStats(Backup backup)
-    {
-        ProgressTextFormat = $"Loading fileset stats {backup} ({{1:0}} %)";
-        // Load only the overview statistics for the backup
-        if (backup.FileTree != null)
-        {
-            // Already loaded
-            return;
-        }
-        backup.Size = _database.GetFilesetSize(backup.Fileset.Id);
+        return ft;
     }
 
-    // Runs in background thread and loads the filetree for _loadingFileTree
-    private async Task LazyLoadFileTrees(CancellationToken token)
-    {
-        try
-        {
-            while (true)
-            {
-                if (!_loadingWait.WaitOne(100) || IsLoadingDatabase)
-                {
-                    token.ThrowIfCancellationRequested();
-                    continue;
-                }
-                var backup = _loadingFileTree;
-                _loadingFileTree = null;
-                _loadingWait.Reset();
-                if (backup == null)
-                {
-                    continue;
-                }
-                ShowProgressBar(true);
-                ProgressTextFormat = $"Loading fileset {backup} ({{1:0}} %)";
-                await _dbTaskScheduler.Run(() => LoadFileset(backup, 100.0));
-                ShowProgressBar(false);
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    // Check whether another file tree was requested while loading
-                    if (_loadingFileTree == null)
-                    {
-                        FileTree = backup.FileTree!;
-                    }
-                });
-            }
-        }
-        catch (OperationCanceledException) { }
-        finally
-        {
-            _loadingWait.Dispose();
-        }
-    }
-
-    void LoadBackups()
+    void EnumerateBackups()
     {
         _database.InitCaches();
 
@@ -565,8 +499,8 @@ public partial class MainViewModel : ViewModelBase
 
         var progStep = (100 - Progress) / filesets.Count;
 
-        AllBackupsSize = _database.GetTotalSize();
-        int fullLoadCount = 0;
+        AllBackupsSize = 0;
+        HashSet<Block> allBlocks = [];
         foreach (var item in filesets)
         {
             if (_loadProjectCancellation is null)
@@ -574,22 +508,15 @@ public partial class MainViewModel : ViewModelBase
 
             _loadProjectCancellation.Token.ThrowIfCancellationRequested();
 
+            var size = _database.GetFilesetSize(item.Id);
 
-            var backup = new Backup { Fileset = item, FileTree = null };
+            var backup = new Backup { Fileset = item, FileTree = null, Size = size };
 
-            if (fullLoadCount < MAX_LOADED_FILESETS)
-            {
-                LoadFileset(backup);
-                fullLoadCount += 1;
-            }
-            else
-            {
-                LoadFilesetStats(backup);
-            }
-
+            ProgressTextFormat = $"Loading backup '{backup}' ({{1:0}} %)";
             Progress += progStep;
 
             Backups.Add(backup);
+            AllBackupsSize = Backups.Sum(x => x.Size);
         }
         AllBackupsWasted = _database.WastedSpaceSum();
     }

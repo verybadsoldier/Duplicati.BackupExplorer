@@ -1,14 +1,12 @@
 ﻿using Duplicati.BackupExplorer.LocalDatabaseAccess.Database;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Database.Model;
 using Duplicati.BackupExplorer.LocalDatabaseAccess.Model;
-using System.Collections.Generic;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 {
-    public class Comparer(DuplicatiDatabase database, DBTaskScheduler dbTaskScheduler)
+    public class Comparer(DuplicatiDatabase database)
     {
         private readonly DuplicatiDatabase _database = database;
-        private readonly DBTaskScheduler _dbTaskScheduler = dbTaskScheduler;
 
         public delegate void BlocksCompareFinished();
 
@@ -16,21 +14,17 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
 
         async public Task<HashSet<Block>> GetBlockIdsForFileset(Fileset fs)
         {
-            return await _dbTaskScheduler.Run(
-            async () =>
-            {
-                List<FilesetEntry> fsEntries = _database.GetFilesetEntriesById(fs.Id);
+            List<FilesetEntry> fsEntries = _database.GetFilesetEntriesById(fs.Id);
 
-                var files = fsEntries.Select(x => _database.GetFileById(x.FileId)).ToList();
-                var blockIds = files.SelectMany(x => _database.GetBlockIdsByBlocksetId(x.BlocksetId));
-                var blocks = new HashSet<Block>();
-                foreach (var blockId in blockIds)
-                {
-                    var a = await _database.GetBlock(blockId);
-                    blocks.Add(a);
-                }
-                return blocks;
-            }).Unwrap();
+            var files = fsEntries.Select(x => _database.GetFileById(x.FileId)).ToList();
+            var blockIds = files.SelectMany(x => _database.GetBlockIdsByBlocksetId(x.BlocksetId));
+            var blocks = new HashSet<Block>();
+            foreach (var blockId in blockIds)
+            {
+                var a = await _database.GetBlock(blockId);
+                blocks.Add(a);
+            }
+            return blocks;
         }
 
         async public Task<CompareResult> CompareFilesets(Fileset fs1, Fileset fs2)
@@ -84,18 +78,18 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess
                     if (!rightFs.BlocksetId.HasValue)
                         throw new InvalidOperationException($"File {rightFs.FullPath} has no blockset ID");
 
-                    var f = await _dbTaskScheduler.Run(() => _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value));
+                    var f = _database.GetBlockIdsByBlocksetId(rightFs.BlocksetId.Value);
                     blockIds.UnionWith(f);
                 }
             }
 
-            rightBlocks.AddRange(await _dbTaskScheduler.Run(() => _database.GetBlocks(blockIds)).Unwrap());
+            rightBlocks.AddRange(await _database.GetBlocks(blockIds));
+
             var rightSet = new HashSet<Block>(rightBlocks);
-            await _dbTaskScheduler.Run(() => CompareFiletreeWithBlocks(left, rightSet));
+            await Task.Run(() => CompareFiletreeWithBlocks(left, rightSet));
         }
 
-        // Has to run on DB thread
-        private void CompareFiletreeWithBlocks(FileTree left, HashSet<Block> rightBlocks)
+        public void CompareFiletreeWithBlocks(FileTree left, HashSet<Block> rightBlocks)
         {
             var rightSizeSum = rightBlocks.Sum(x => x.Size);
 

@@ -16,7 +16,15 @@
     <Grid ColumnDefinitions="Auto,1*,Auto" DockPanel.Dock="Top">
       <Label Grid.Column="0" Margin="0,3,0,0">Database:</Label>
       <TextBox Grid.Column="1" Text="{Binding ProjectFilename}" Margin="0,0,10,0" IsEnabled="False"></TextBox>
-      <Button Grid.Column="2" ToolTip.Tip="Select a Duplicati database file to load" Background="{Binding ButtonSelectDatabaseColor}" Command="{Binding SelectDatabase}" CommandParameter="{Binding $parent[Window]}" Content="{Binding LoadButtonLabel}" />
+      <Button Grid.Column="2" ToolTip.Tip="Select a Duplicati database file to load" Background="{Binding ButtonSelectDatabaseColor}" Command="{Binding SelectDatabase}" CommandParameter="{Binding $parent[Window]}" Content="{Binding LoadButtonLabel}">
+        <Button.IsEnabled>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="!IsLoadingDatabase"></Binding>
+            <Binding Path="!IsProcessingCompare"></Binding>
+            <Binding Path="!IsLoadingBackup"></Binding>
+          </MultiBinding>
+        </Button.IsEnabled>
+      </Button>
     </Grid>
 
     <Grid DockPanel.Dock="Left" RowDefinitions="Auto,1*,Auto">
@@ -26,6 +34,13 @@
       </StackPanel>
 
       <ListBox MinWidth="200" Grid.Row="1" ItemsSource="{Binding Backups}" SelectedItems="{Binding SelectedBackups}" Name="ListBoxBackups">
+        <ListBox.IsEnabled>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="!IsLoadingDatabase"></Binding>
+            <Binding Path="!IsProcessingCompare"></Binding>
+            <Binding Path="!IsLoadingBackup"></Binding>
+          </MultiBinding>
+        </ListBox.IsEnabled>
         <ListBox.ContextMenu>
           <ContextMenu>
             <MenuItem Header="Select as Comparison Base" ToolTip.Tip="Select this item as base comparison element" Command="{Binding SelectLeftSide}" CommandParameter="{Binding $parent[2]} "/>
@@ -35,7 +50,7 @@
         </ListBox.ContextMenu>
         <ListBox.ItemTemplate>
           <DataTemplate>
-            <Border Background="LightBlue" CornerRadius="5" Padding="10, 10, 10, 0">
+            <Border Background="{Binding FileTree, Converter={StaticResource BackupListItemBackgroundConverter}}" CornerRadius="5" Padding="10, 10, 10, 0">
               <StackPanel Orientation="Horizontal">
                 <Image Width="30" Height="30" Margin="-5,-9,5,0" RenderOptions.BitmapInterpolationMode="HighQuality" Source="avares://Duplicati.BackupExplorer/Assets/database_icon_246440.png" />
                 <TextBlock Text="{Binding Fileset}" />
@@ -63,8 +78,10 @@
       <Button Grid.Column="3" Grid.Row="1" Grid.RowSpan="2" ToolTip.Tip="Compare the selected base and target" Command="{Binding Compare}" Background="Green" HorizontalAlignment="Right" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MinWidth="180" MinHeight="60" FontSize="20" FontWeight="Bold">
         <Button.IsEnabled>
           <MultiBinding Converter="{x:Static BoolConverters.And}">
-            <Binding Path="!IsProcessing"></Binding>
-            <Binding Path="IsProjectLoaded"></Binding>
+            <Binding Path="!IsProcessingCompare"></Binding>
+              <Binding Path="!IsLoadingDatabase"></Binding>
+              <Binding Path="!IsLoadingBackup"></Binding>
+              <Binding Path="IsProjectLoaded"></Binding>
             <Binding Path="IsCompareElementsSelected"></Binding>
           </MultiBinding>
         </Button.IsEnabled>
@@ -75,7 +92,7 @@
       </Button>
     </Grid>
     <Border BorderBrush="LightGray" BorderThickness="0,0,0,2">
-      <TreeView ItemsSource="{Binding FileTree.Nodes}" Margin="0,10,0,0">
+      <TreeView ItemsSource="{Binding FileTree.Nodes}" Margin="0,10,0,0" IsEnabled="{Binding !IsLoadingBackup}">
         <TreeView.ItemTemplate>
           <TreeDataTemplate ItemsSource="{Binding Children.Values}">
             <StackPanel Orientation="Horizontal">
