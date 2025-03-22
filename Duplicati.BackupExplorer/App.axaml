@@ -9,6 +9,7 @@
     <local:FileSizeConverter x:Key="FileSizeConverter" />
     <local:FileSizeSharedConverter x:Key="FileSizeSharedConverter" />
     <local:ComparisonItemNameConverter x:Key="ComparisonItemNameConverter" />
+	<local:BackupListItemBackgroundConverter x:Key="BackupListItemBackgroundConverter" />
   </Application.Resources>
     <Application.Styles>
         <FluentTheme />

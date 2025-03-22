@@ -8,22 +8,11 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public FileTree? FileTree { get; set; }
 
-        public long Size
-        {
-            get
-            {
-                if (FileTree is null)
-                {
-                    throw new InvalidOperationException("FileTree is null");
-                }
-                return (FileTree.Nodes[0]).NodeSize;
-            }
-        }
+        public long Size { get; set; }
 
         public override string ToString()
         {
             return Fileset.ToString();
         }
-
     }
 }

@@ -67,65 +67,26 @@
             return reader.GetInt64(0);
         }
 
-        /*
-        private struct VolumeUsage
+        public long GetFilesetSize(long filesetId)
         {
-            public readonly string Name;
-            public readonly long DataSize;
-            public readonly long WastedSize;
-            public readonly long CompressedSize;
-
-            public VolumeUsage(string name, long datasize, long wastedsize, long compressedsize)
-            {
-                this.Name = name;
-                this.DataSize = datasize;
-                this.WastedSize = wastedsize;
-                this.CompressedSize = compressedsize;
-            }
+            CheckConnectionNotNull();
+            using var cmd = _conn!.CreateCommand();
+            // Get the sum of all recorded file sizes in the fileset
+            cmd.CommandText = @"
+            SELECT
+                SUM(S.Length)
+            FROM
+                Blockset S
+            JOIN
+                FileLookup L
+            ON
+                L.BlocksetID = S.ID
+            WHERE
+                L.ID
+            IN (SELECT FileID FROM FilesetEntry WHERE FilesetID = @filesetId)";
+            cmd.Parameters.AddWithValue("@filesetId", filesetId);
+            return (long)(cmd.ExecuteScalar() ?? 0);
         }
-
-        private IEnumerable<VolumeUsage> GetWastedSpaceReport(System.Data.IDbTransaction transaction)
-        {
-            var a = Guid.NewGuid().ToString();
-            var tmptablename = "UsageReport-" + a;
-
-            var usedBlocks = @"SELECT SUM(Block.Size) AS ActiveSize, Block.VolumeID AS VolumeID FROM Block, Remotevolume
-                                WHERE Block.VolumeID = Remotevolume.ID AND Block.ID NOT IN 
-                                    (SELECT Block.ID FROM Block,DeletedBlock WHERE Block.Hash = DeletedBlock.Hash AND Block.Size = DeletedBlock.Size AND Block.VolumeID = DeletedBlock.VolumeID)
-                                GROUP BY Block.VolumeID ";
-            var lastmodifiedFile = @"SELECT Block.VolumeID AS VolumeID, Fileset.Timestamp AS Sorttime FROM Fileset, FilesetEntry, FileLookup, BlocksetEntry, Block WHERE FilesetEntry.FileID = FileLookup.ID AND FileLookup.BlocksetID = BlocksetEntry.BlocksetID AND BlocksetEntry.BlockID = Block.ID AND Fileset.ID = FilesetEntry.FilesetID ";
-            var lastmodifiedMetadata = @"SELECT Block.VolumeID AS VolumeID, Fileset.Timestamp AS Sorttime FROM Fileset, FilesetEntry, FileLookup, BlocksetEntry, Block, Metadataset WHERE FilesetEntry.FileID = FileLookup.ID AND FileLookup.MetadataID = Metadataset.ID AND Metadataset.BlocksetID = BlocksetEntry.BlocksetID AND BlocksetEntry.BlockID = Block.ID AND Fileset.ID = FilesetEntry.FilesetID ";
-            var scantime = @"SELECT VolumeID AS VolumeID, MIN(Sorttime) AS Sorttime FROM (" + lastmodifiedFile + @" UNION " + lastmodifiedMetadata + @") GROUP BY VolumeID ";
-            var active = @"SELECT A.ActiveSize AS ActiveSize,  0 AS InactiveSize, A.VolumeID AS VolumeID, CASE WHEN B.Sorttime IS NULL THEN 0 ELSE B.Sorttime END AS Sorttime FROM (" + usedBlocks + @") A LEFT OUTER JOIN (" + scantime + @") B ON B.VolumeID = A.VolumeID ";
-
-            var inactive = @"SELECT 0 AS ActiveSize, SUM(Size) AS InactiveSize, VolumeID AS VolumeID, 0 AS SortScantime FROM DeletedBlock GROUP BY VolumeID ";
-            var empty = @"SELECT 0 AS ActiveSize, 0 AS InactiveSize, Remotevolume.ID AS VolumeID, 0 AS SortScantime FROM Remotevolume WHERE Remotevolume.Type = ? AND Remotevolume.State IN (?, ?) AND Remotevolume.ID NOT IN (SELECT VolumeID FROM Block) ";
-
-            var combined = active + " UNION " + inactive + " UNION " + empty;
-            var collected = @"SELECT VolumeID AS VolumeID, SUM(ActiveSize) AS ActiveSize, SUM(InactiveSize) AS InactiveSize, MAX(Sorttime) AS Sorttime FROM (" + combined + @") GROUP BY VolumeID ";
-            var createtable = @"CREATE TEMPORARY TABLE " + tmptablename + @" AS " + collected;
-
-            using (var cmd = _conn.CreateCommand())
-            {
-                try
-                {
-                    cmd.ExecuteNonQuery(createtable, RemoteVolumeType.Blocks.ToString(), RemoteVolumeState.Uploaded.ToString(), RemoteVolumeState.Verified.ToString());
-                    using (var rd = cmd.ExecuteReader(string.Format(@"SELECT A.Name, B.ActiveSize, B.InactiveSize, A.Size FROM Remotevolume A, {0} B WHERE A.ID = B.VolumeID ORDER BY B.Sorttime ASC ", tmptablename)))
-                        while (rd.Read())
-                            yield return new VolumeUsage(rd.GetValue(0).ToString(),
-                                                         rd.ConvertValueToInt64(1, 0) + rd.ConvertValueToInt64(2, 0),
-                                                         rd.ConvertValueToInt64(2, 0),
-                                                         rd.ConvertValueToInt64(3, 0),
-                                                         );
-                }
-                finally
-                {
-                    try { cmd.ExecuteNonQuery(string.Format(@"DROP TABLE IF EXISTS {0} ", tmptablename)); }
-                    catch { }
-                }
-            }
-        }
-        */
 
         public void Open(string filepath)
         {
@@ -276,7 +237,7 @@
             return new File { Id = fileId, BlocksetId = reader.GetInt32(0), Path = reader.GetString(1), Prefix = reader.GetString(2), MetadataId = reader.GetInt64(3) };
         }
 
-        public List<File> GetFilesByIds4(IEnumerable<long> fileIds)
+        public List<File> GetFilesByIds(IEnumerable<long> fileIds)
         {
             var ids = fileIds.ToHashSet();
             return _filesCache.Where(x => ids.Contains(x.Id)).ToList();
