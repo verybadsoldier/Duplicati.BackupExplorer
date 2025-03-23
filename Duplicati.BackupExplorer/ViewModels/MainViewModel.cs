@@ -415,13 +415,16 @@ public partial class MainViewModel : ViewModelBase
 
                         IsProjectLoaded = true;
                     }
-                    catch (OperationCanceledException)
+                    catch (Exception ex)
                     {
                         IsProjectLoaded = false;
                         AllBackupsSize = 0;
 #pragma warning disable S4158 // Empty collections should not be accessed or iterated
                         Backups.Clear();
 #pragma warning restore S4158 // Empty collections should not be accessed or iterated
+
+                        if (ex is not OperationCanceledException)
+                            throw;
                     }
                     finally
                     {

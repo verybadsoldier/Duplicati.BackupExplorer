@@ -79,9 +79,9 @@
         <Button.IsEnabled>
           <MultiBinding Converter="{x:Static BoolConverters.And}">
             <Binding Path="!IsProcessingCompare"></Binding>
-              <Binding Path="!IsLoadingDatabase"></Binding>
-              <Binding Path="!IsLoadingBackup"></Binding>
-              <Binding Path="IsProjectLoaded"></Binding>
+            <Binding Path="!IsLoadingDatabase"></Binding>
+            <Binding Path="!IsLoadingBackup"></Binding>
+            <Binding Path="IsProjectLoaded"></Binding>
             <Binding Path="IsCompareElementsSelected"></Binding>
           </MultiBinding>
         </Button.IsEnabled>

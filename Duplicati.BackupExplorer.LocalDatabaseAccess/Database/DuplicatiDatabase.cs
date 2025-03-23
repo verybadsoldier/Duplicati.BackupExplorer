@@ -85,7 +85,8 @@
                 L.ID
             IN (SELECT FileID FROM FilesetEntry WHERE FilesetID = @filesetId)";
             cmd.Parameters.AddWithValue("@filesetId", filesetId);
-            return (long)(cmd.ExecuteScalar() ?? 0);
+
+            return cmd.ExecuteScalar() as long? ?? 0;
         }
 
         public void Open(string filepath)
