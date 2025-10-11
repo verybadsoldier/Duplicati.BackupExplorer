@@ -1,41 +1,85 @@
 name: Release Duplicati BackupExplorer
 run-name: Creating Release on GitHub
-#on: [push]
+
 on:
+  # 1. Trigger on new tags (e.g., v1.0.0) for official releases
   push:
-    tags: [ 'v*.*.*' ]
+    tags:
+      - 'v*.*.*'
+  # 2. Allow manual runs from the Actions tab for testing
+  workflow_dispatch:
+
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build_and_release:
     strategy:
       matrix:
-        version: [linux, win]
+        include:
+          - target: linux
+            os: ubuntu-latest
+          - target: win
+            os: windows-latest
+    
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        name: Setup dotnet        
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
+
       - name: Display dotnet version
         run: dotnet --version
+
       - name: Run Tests
         run: dotnet test
-      - name: Build ${{ matrix.version }}
+
+      # --- Build Step (OS-dependent output path) ---
+      - name: Publish Application
         run: |
-          export DBE_OUTPUT_DIR="build_${{ matrix.version }}"
-          dotnet publish -c Release --os ${{ matrix.version }} -o "${DBE_OUTPUT_DIR}" Duplicati.BackupExplorer
-          echo DBE_OUTPUT_DIR="${DBE_OUTPUT_DIR}" >> $GITHUB_ENV
-      - name: Build Release Name
-        run: echo "DBE_RELEASE_FILENAME=Duplicati-BackupExplorer-${{ matrix.version }}-${{ github.ref_name }}.zip" >> $GITHUB_ENV
-      - name: Package ${{ matrix.version }}
-        run: cd "${DBE_OUTPUT_DIR}" && zip -r "../${DBE_RELEASE_FILENAME}" *
-      - name: Debug
+          if [[ "${{ matrix.target }}" == "win" ]]; then
+            dotnet publish -c Release --os win -o "release_files" Duplicati.BackupExplorer/Duplicati.BackupExplorer.csproj
+          else
+            dotnet publish -c Release --os linux -o "build_linux" Duplicati.BackupExplorer/Duplicati.BackupExplorer.csproj
+          fi
+        shell: bash
+
+      # --- Linux Packaging ---
+      - name: Package Linux Release
+        if: matrix.target == 'linux'
         run: |
-          ls -la
-          echo "ReleaseFilename: ${DBE_RELEASE_FILENAME}" 
-      - name: Publish Release
-        uses: softprops/action-gh-release@v2
-        #if: startsWith(github.ref, 'refs/tags/')
+          cd build_linux
+          zip -r "../Duplicati-BackupExplorer-linux-${{ github.ref_name }}.zip" *
+          echo "ASSET_PATH=Duplicati-BackupExplorer-linux-${{ github.ref_name }}.zip" >> $GITHUB_ENV
+        shell: bash
+      
+      # --- Windows Packaging & Installer Creation ---
+      - name: Package Windows ZIP Release
+        if: matrix.target == 'win'
+        run: Compress-Archive -Path release_files\* -DestinationPath "Duplicati-BackupExplorer-win-${{ github.ref_name }}.zip"
+        shell: pwsh
+
+      - name: Compile Windows Installer
+        if: matrix.target == 'win'
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.0
         with:
-          files: |
-            ${{ env.DBE_RELEASE_FILENAME }}
+          path: installer.iss
+          options: '/DAppVersion=${{ github.ref_name }}'
+
+      - name: Set Windows Asset Paths
+        if: matrix.target == 'win'
+        run: echo "ASSET_PATH=Duplicati-BackupExplorer-win-${{ github.ref_name }}.zip,InstallerOutput/Duplicati-BackupExplorer-Setup-${{ github.ref_name }}.exe" >> $GITHUB_ENV
+        shell: bash
+
+      # --- Create Release and Upload Assets ---
+      - name: Publish Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          # Tagged pushes create a full release; manual runs create a pre-release for testing.
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          # This action is smart enough to find the existing release created
+          # by the other job in the matrix and append files to it.
+          files: ${{ env.ASSET_PATH }}
+
