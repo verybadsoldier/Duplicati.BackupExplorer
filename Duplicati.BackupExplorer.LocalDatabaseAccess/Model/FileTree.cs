@@ -1,8 +1,15 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Xml.Linq;
 
 namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 {
+    public enum SortMode
+    {
+        Lexical,
+        SizeDescending
+    }
+
     public class FileNode(string name, long? fileSize)
     {
         private readonly long? _fileSize = fileSize;
@@ -14,6 +21,27 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
         public CompareResult? CompareResult { get; set; }
         public OrderedDictionary Children { get; set; } = [];
 
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set => _isExpanded = value; // Assumes SetProperty from a ViewModelBase
+        }
+
+        public void ExpandLevels(int levels, int currentLevel=1)
+        {
+            if (IsFile)
+                return;
+
+            IsExpanded = true;
+
+            if (levels == currentLevel) return;
+
+            foreach (var node in Children.Values)
+            {
+                ((FileNode)node).ExpandLevels(levels, currentLevel + 1);
+            }
+        }
 
         public long NodeSize
         {
@@ -117,6 +145,49 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             }
         }
 
+        public void SortChildren(SortMode sortMode)
+        {
+            if (Children == null || Children.Count == 0)
+            {
+                return;
+            }
+
+            // Extract children to a list for sorting
+            var childrenToSort = Children.Values.OfType<FileNode>().ToList();
+
+            // Sort the list based on the chosen mode
+            if (sortMode == SortMode.SizeDescending)
+            {
+                childrenToSort.Sort((a, b) => b.NodeSize.CompareTo(a.NodeSize));
+            }
+            else // Lexical
+            {
+                childrenToSort.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
+            }
+
+            // Clear the dictionary and repopulate it from the sorted list
+            Children.Clear();
+            foreach (var sortedChild in childrenToSort)
+            {
+                Children.Add(sortedChild.Name, sortedChild);
+            }
+        }
+
+        public void SortChildrenRecursive(SortMode sortMode)
+        {
+            // First, sort the direct children of this node
+            this.SortChildren(sortMode);
+
+            // Then, recursively call this method on each child that is a directory
+            foreach (FileNode child in this.Children.Values)
+            {
+                if (!child.IsFile)
+                {
+                    child.SortChildrenRecursive(sortMode);
+                }
+            }
+        }
+
         public override string ToString()
         {
             return FullPath;
@@ -127,7 +198,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
     {
         private static readonly char[] separator = ['\\', '/'];
 
-        public FileTree(string rootName="Root")
+        public FileTree(string rootName="/")
         {
             Nodes.Add(new FileNode(rootName, null));
         }
@@ -136,7 +207,23 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
 
         public string? Name { get; set; }
 
+        public void ExpandLevels(int levels)
+        {
+            foreach (var node in Nodes)
+            {
+                node.IsExpanded = true;
+                node.ExpandLevels(levels);
+            }
+        }
 
+        public void Sort(SortMode mode)
+        {
+            foreach (var node in Nodes)
+            {
+                node.SortChildrenRecursive(mode);
+            }
+            
+        }
 
         override public string ToString()
         {
@@ -191,6 +278,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             }
             return current;
         }
+
 
         public void UpdateDirectoryCompareResults()
         {

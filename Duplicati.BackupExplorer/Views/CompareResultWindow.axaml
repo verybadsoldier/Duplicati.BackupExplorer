@@ -104,6 +104,22 @@
           </Binding.Converter>
         </Binding>
       </TreeView.ItemTemplate>
+	  <TreeView.ContextMenu>
+	  	<ContextMenu>
+	  		<MenuItem Header="Sort by Name"
+	  				ToggleType="Radio"
+	  				GroupName="sortGroup"
+	  				Command="{Binding SetSortOptionCommand}"
+	  				IsChecked="True"
+	  				CommandParameter="{x:Static vm:SortOptions.Alphabetical}"/>
+      
+	  		<MenuItem Header="Sort by Size"
+	  				ToggleType="Radio"
+	  				GroupName="sortGroup"
+	  				Command="{Binding SetSortOptionCommand}"
+	  				CommandParameter="{x:Static vm:SortOptions.Size}"/>
+	  	</ContextMenu>
+	  </TreeView.ContextMenu>
     </TreeView>
   </Grid>
 </Window>

@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 
 namespace Duplicati.BackupExplorer.ViewModels;
 
+
 public class FileSystemItem
 {
     public FileSystemItem(string title)
@@ -148,6 +149,8 @@ public partial class MainViewModel : ViewModelBase
 
     public ObservableCollection<Backup> SelectedBackups { get; set; } = [];
 
+    public SortMode CurrentSortMode = SortMode.Lexical;
+
     public string LoadButtonLabel { get { return _loadButtonLabel; } set { _loadButtonLabel = value; OnPropertyChanged(nameof(LoadButtonLabel)); } }
 
     public bool ProgressVisible { get { return _progressVisible; } set { _progressVisible = value; OnPropertyChanged(nameof(ProgressVisible)); } }
@@ -170,36 +173,38 @@ public partial class MainViewModel : ViewModelBase
 
     private async void SelectedBackups_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
-        if (SelectedBackups.Count > 0)
+        if (SelectedBackups.Count == 0)
+            return;
+        var backup = SelectedBackups[0];
+        if (backup.FileTree == null)
         {
-            var backup = SelectedBackups[0];
-            if (backup.FileTree == null)
+            IsLoadingBackup = true;
+            ShowProgressBar(true);
+            Progress = 50;
+            ProgressTextFormat = $"Processing files... ({{1:0}} %)";
+            var fileTree = await Task.Run(() => LoadFileTree(backup.Fileset, 50));
+            backup.FileTree = fileTree;
+
+            _loadedBackups.Add(backup);
+            if (_loadedBackups.Count > 0)
             {
-                IsLoadingBackup = true;
-                ShowProgressBar(true);
-                Progress = 50;
-                ProgressTextFormat = $"Processing files... ({{1:0}} %)";
-                var fileTree = await Task.Run(() => LoadFileTree(backup.Fileset, 50));
-                backup.FileTree = fileTree;
-
-                _loadedBackups.Add(backup);
-                if (_loadedBackups.Count > 0)
+                long totalMem = GC.GetTotalMemory(false);
+                if (totalMem >= 5_000_000_000)
                 {
-                    long totalMem = GC.GetTotalMemory(false);
-                    if (totalMem >= 5_000_000_000)
-                    {
-                        // Release memory if more than 5 GB are used
-                        _loadedBackups[0].FileTree = null;
-                        _loadedBackups.RemoveAt(0);
-                    }
+                    // Release memory if more than 5 GB are used
+                    _loadedBackups[0].FileTree = null;
+                    _loadedBackups.RemoveAt(0);
                 }
-
-                IsLoadingBackup = false;
-                ShowProgressBar(false);
             }
 
-            FileTree = backup.FileTree!;
+            IsLoadingBackup = false;
+            ShowProgressBar(false);
         }
+
+        FileTree = backup.FileTree!;
+
+        // Apply current sorting
+        FileTree.Sort(CurrentSortMode);
     }
 
     public void SetProvider(IStorageProvider provider)
@@ -215,6 +220,28 @@ public partial class MainViewModel : ViewModelBase
     public void SelectRightSide(object? sender)
     {
         SelectSide(sender, false);
+    }
+
+    public void SetSortOptionCommand(object? sender)
+    {
+        if (sender == null)
+            return;
+
+        CurrentSortMode = (SortMode)sender;
+
+        var treeToUpdate = this.FileTree;
+        if (treeToUpdate == null) return;
+
+        // 1. Sort the object in-place
+        treeToUpdate.Sort(CurrentSortMode);
+
+        // 2. Set the property to null. This sends a notification that clears the TreeView.
+        this.FileTree = null;
+
+        // 3. Immediately set it back to the now-sorted object.
+        //    This sends a second notification, forcing the TreeView to completely
+        //    rebuild its items from the updated 'Nodes' collection.
+        this.FileTree = treeToUpdate;
     }
 
     private FileTree GetFileTreeFromSelection(object? selection)
@@ -315,6 +342,8 @@ public partial class MainViewModel : ViewModelBase
 
         ftLeft.UpdateDirectoryCompareResults();
 
+        ftLeft.Sort(CurrentSortMode);
+
         var dialog = new CompareResultWindow
         {
             Title = $"Comparison Result - {ftLeft.Name} <-> All",
@@ -354,6 +383,8 @@ public partial class MainViewModel : ViewModelBase
             Title = $"Comparison Result - {LeftSide.Name} <-> {RightSide.Name}",
             DataContext = new CompareResultModel() { FileTree = LeftSide, RightSideName = RightSide.Name }
         };
+
+        LeftSide.Sort(CurrentSortMode);
 
         dialog.Show();
 
@@ -486,6 +517,10 @@ public partial class MainViewModel : ViewModelBase
             ft.AddPath(Path.Join(file.Prefix, file.Path), file.BlocksetId, fileSize);
             ++i;
         }
+
+        ft.Sort(CurrentSortMode);
+
+        ft.ExpandLevels(2);
 
         Progress += i * progStep; // add remaining progress
 

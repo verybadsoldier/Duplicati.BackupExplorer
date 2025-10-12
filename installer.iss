@@ -15,6 +15,11 @@ AppName=Duplicati.BackupExplorer
   #define AppVersion "0.0.0-local"
 #endif
 AppVersion={#AppVersion}
+
+// Entfernt alle doppelten Anführungszeichen, falls welche vorhanden sind
+#define AppVersionClean StringChange(AppVersion, '"', '')
+AppVersion={#AppVersionClean}
+
 AppPublisher=verybadsoldier
 AppPublisherURL=https://github.com/verybadsoldier/Duplicati.BackupExplorer
 AppSupportURL=https://github.com/verybadsoldier/Duplicati.BackupExplorer/issues
@@ -24,7 +29,7 @@ DefaultDirName={autopf}\Duplicati.BackupExplorer
 ; Default Start Menu folder name.
 DefaultGroupName=Duplicati.BackupExplorer
 ; The name of the final setup executable. Include the version number.
-OutputBaseFilename=Duplicati.BackupExplorer-Setup-{#AppVersion}
+OutputBaseFilename=Duplicati.BackupExplorer-Setup-{#AppVersionClean}
 ; The directory where the final setup executable will be created.
 OutputDir=InstallerOutput
 Compression=lzma

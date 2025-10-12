@@ -26,6 +26,8 @@ public partial class CompareResultModel : ViewModelBase
         FileTree = fileTree;
     }
 
+    public SortMode CurrentSortMode = SortMode.Lexical;
+
     public FileTree FileTree { get; set; }
 
     public string RightSideName
@@ -43,6 +45,28 @@ public partial class CompareResultModel : ViewModelBase
             _rightSideName = value;
             OnPropertyChanged(nameof(RightSideName));
         }
+    }
+
+    public void SetSortOptionCommand(object? sender)
+    {
+        if (sender == null)
+            return;
+
+        CurrentSortMode = (SortMode)sender;
+
+        var treeToUpdate = this.FileTree;
+        if (treeToUpdate == null) return;
+
+        // 1. Sort the object in-place
+        treeToUpdate.Sort(CurrentSortMode);
+
+        // 2. Set the property to null. This sends a notification that clears the TreeView.
+        this.FileTree = null;
+
+        // 3. Immediately set it back to the now-sorted object.
+        //    This sends a second notification, forcing the TreeView to completely
+        //    rebuild its items from the updated 'Nodes' collection.
+        this.FileTree = treeToUpdate;
     }
 
     public bool ShowDisjunct

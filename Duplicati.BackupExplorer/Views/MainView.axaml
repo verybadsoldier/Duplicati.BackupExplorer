@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Duplicati.BackupExplorer.ViewModels"
+			 xmlns:db="clr-namespace:Duplicati.BackupExplorer.LocalDatabaseAccess.Model;assembly=LocalDatabaseAccesgs"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Duplicati.BackupExplorer.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -93,6 +94,11 @@
     </Grid>
     <Border BorderBrush="LightGray" BorderThickness="0,0,0,2">
       <TreeView ItemsSource="{Binding FileTree.Nodes}" Margin="0,10,0,0" IsEnabled="{Binding !IsLoadingBackup}">
+		  <TreeView.Styles>
+			  <Style Selector="TreeViewItem">
+				  <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+			  </Style>
+		  </TreeView.Styles>
         <TreeView.ItemTemplate>
           <TreeDataTemplate ItemsSource="{Binding Children.Values}">
             <StackPanel Orientation="Horizontal">
@@ -106,7 +112,19 @@
             <MenuItem Header="Select as Comparison Base" ToolTip.Tip="Select this item as base comparison element" Command="{Binding SelectLeftSide}" CommandParameter="{Binding $parent[2]} "/>
             <MenuItem Header="Select as Comparison Target" ToolTip.Tip="Select this item as target comparison element" Command="{Binding SelectRightSide}" CommandParameter="{Binding $parent[2]}"/>
             <MenuItem Header="Compare to all Backups" ToolTip.Tip="Compare this item now as to all backups as target" Command="{Binding CompareToAll}" CommandParameter="{Binding $parent[2]}"/>
-          </ContextMenu>
+			<Separator/>
+			  <MenuItem Header="Sort by Name"
+					  ToggleType="Radio"
+					  GroupName="sortGroup"
+					  Command="{Binding SetSortOptionCommand}"
+					  IsChecked="True"></MenuItem>
+
+			<MenuItem Header="Sort by Size"
+					ToggleType="Radio"
+					GroupName="sortGroup"
+					Command="{Binding SetSortOptionCommand}"
+					/>
+		  </ContextMenu>
         </TreeView.ContextMenu>
       </TreeView>
     </Border>
