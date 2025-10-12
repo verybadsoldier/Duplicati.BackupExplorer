@@ -7,7 +7,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
     public enum SortMode
     {
         Lexical,
-        SizeDescending
+        Size
     }
 
     public class FileNode(string name, long? fileSize)
@@ -156,7 +156,7 @@ namespace Duplicati.BackupExplorer.LocalDatabaseAccess.Model
             var childrenToSort = Children.Values.OfType<FileNode>().ToList();
 
             // Sort the list based on the chosen mode
-            if (sortMode == SortMode.SizeDescending)
+            if (sortMode == SortMode.Size)
             {
                 childrenToSort.Sort((a, b) => b.NodeSize.CompareTo(a.NodeSize));
             }

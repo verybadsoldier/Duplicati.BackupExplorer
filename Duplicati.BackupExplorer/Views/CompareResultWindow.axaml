@@ -135,7 +135,7 @@
 								GroupName="sortGroup"
 													  IsChecked="{Binding CurrentSortMode, 
                                   Converter={StaticResource EnumToBoolConverter}, 
-                                  ConverterParameter={x:Static db:SortMode.SizeDescending}}"
+                                  ConverterParameter={x:Static db:SortMode.Size}}"
 								Command="{Binding SetSortOptionCommand}"
 								CommandParameter="{x:Static vm:SortOptions.Size}"/>
 					</ContextMenu>
