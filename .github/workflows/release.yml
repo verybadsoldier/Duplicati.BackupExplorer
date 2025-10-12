@@ -2,12 +2,9 @@ name: Release Duplicati BackupExplorer
 run-name: Creating Release on GitHub
 
 on:
-  # 1. Trigger on new tags (e.g., v1.0.0) for official releases
   push:
     tags:
       - 'v*.*.*'
-  # 2. Allow manual runs from the Actions tab for testing
-  workflow_dispatch:
 
 jobs:
   build_and_release:
@@ -58,19 +55,39 @@ jobs:
       # --- Windows Packaging & Installer Creation ---
       - name: Package Windows ZIP Release
         if: matrix.target == 'win'
-        run: Compress-Archive -Path release_files\* -DestinationPath "Duplicati-BackupExplorer-win-${{ github.ref_name }}.zip"
+        run: Compress-Archive -Path release_files\* -DestinationPath "Duplicati.BackupExplorer-win-${{ github.ref_name }}.zip"
         shell: pwsh
 
-      - name: Compile Windows Installer
+      - name: Install Inno Setup (Chocolatey)
         if: matrix.target == 'win'
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.0
-        with:
-          path: installer.iss
-          options: '/DAppVersion=${{ github.ref_name }}'
-
+        run: choco install innosetup -y
+        shell: pwsh
+      - name: Compile Inno Installer (direct ISCC)
+        if: matrix.target == 'win'
+        run: |
+          # pick the version string from the workflow (e.g. "v1.0.0")
+          $ver = '${{ github.ref_name }}'
+          # strip surrounding quotes (if any), and optionally strip leading "v"
+          $ver = $ver.Trim('"')
+          Write-Host "Using AppVersion: $ver"
+        
+          # find iscc.exe
+          $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Path
+          if (-not $iscc) {
+            # default location (Inno Setup 6 typical)
+            $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          }
+        
+          if (-not (Test-Path $iscc)) {
+            Write-Error "iscc.exe not found at $iscc"
+            exit 1
+          }
+        
+          & $iscc "/DAppVersion=$ver" "$env:GITHUB_WORKSPACE\installer.iss"
+        shell: pwsh
       - name: Set Windows Asset Paths
         if: matrix.target == 'win'
-        run: echo "ASSET_PATH=Duplicati-BackupExplorer-win-${{ github.ref_name }}.zip,InstallerOutput/Duplicati-BackupExplorer-Setup-${{ github.ref_name }}.exe" >> $GITHUB_ENV
+        run: echo "ASSET_PATH=Duplicati.BackupExplorer-win-${{ github.ref_name }}.zip,InstallerOutput/Duplicati.BackupExplorer-win-Setup-${{ github.ref_name }}.exe" >> $GITHUB_ENV
         shell: bash
 
       # --- Create Release and Upload Assets ---

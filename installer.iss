@@ -7,7 +7,7 @@
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value for other applications.
 ; It is recommended to use a GUID. You can generate one here: https://www.guidgenerator.com/
-AppId={{C62A8AFB-503A-4F79-A152-6A816A5A357E}
+AppId={{C62A8AFB-503A-4F79-A152-6A816A5A357E}}
 AppName=Duplicati.BackupExplorer
 ; Remember to update the AppVersion for each new release.
 ; The version will be passed by the GitHub Action. This default is for local builds.
@@ -15,11 +15,6 @@ AppName=Duplicati.BackupExplorer
   #define AppVersion "0.0.0-local"
 #endif
 AppVersion={#AppVersion}
-
-// Entfernt alle doppelten Anführungszeichen, falls welche vorhanden sind
-#define AppVersionClean StringChange(AppVersion, '"', '')
-AppVersion={#AppVersionClean}
-
 AppPublisher=verybadsoldier
 AppPublisherURL=https://github.com/verybadsoldier/Duplicati.BackupExplorer
 AppSupportURL=https://github.com/verybadsoldier/Duplicati.BackupExplorer/issues
@@ -29,7 +24,7 @@ DefaultDirName={autopf}\Duplicati.BackupExplorer
 ; Default Start Menu folder name.
 DefaultGroupName=Duplicati.BackupExplorer
 ; The name of the final setup executable. Include the version number.
-OutputBaseFilename=Duplicati.BackupExplorer-Setup-{#AppVersionClean}
+OutputBaseFilename=Duplicati.BackupExplorer-win-Setup-{#AppVersion}
 ; The directory where the final setup executable will be created.
 OutputDir=InstallerOutput
 Compression=lzma
