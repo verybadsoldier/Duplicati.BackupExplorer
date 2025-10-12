@@ -47,7 +47,7 @@ public partial class CompareResultModel : ViewModelBase
         }
     }
 
-    public async void SetSortOptionCommand(object? sender)
+    public void SetSortOptionCommand(object? sender)
     {
         if (sender == null)
             return;

@@ -235,8 +235,7 @@ public partial class MainViewModel : ViewModelBase
         // 1. Sort the object in-place
         treeToUpdate.Sort(CurrentSortMode);
 
-        // 2. Set the property to null. This sends a notification that clears the TreeView.
-        this.FileTree = null;
+        this.FileTree = new FileTree();
 
         // 3. Immediately set it back to the now-sorted object.
         //    This sends a second notification, forcing the TreeView to completely
