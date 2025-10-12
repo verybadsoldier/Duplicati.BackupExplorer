@@ -26,7 +26,7 @@ public partial class CompareResultModel : ViewModelBase
         FileTree = fileTree;
     }
 
-    public SortMode CurrentSortMode = SortMode.Lexical;
+    public SortMode CurrentSortMode { get; set; } = SortMode.Lexical;
 
     public FileTree FileTree { get; set; }
 

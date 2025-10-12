@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Duplicati.BackupExplorer.ViewModels"
-			 xmlns:db="clr-namespace:Duplicati.BackupExplorer.LocalDatabaseAccess.Model;assembly=LocalDatabaseAccesgs"
+             xmlns:db="clr-namespace:Duplicati.BackupExplorer.LocalDatabaseAccess.Model;assembly=Duplicati.BackupExplorer.LocalDatabaseAccess"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Duplicati.BackupExplorer.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -116,15 +116,20 @@
 			  <MenuItem Header="Sort by Name"
 					  ToggleType="Radio"
 					  GroupName="sortGroup"
+				      IsChecked="{Binding CurrentSortMode, 
+                                  Converter={StaticResource EnumToBoolConverter}, 
+                                  ConverterParameter={x:Static db:SortMode.Lexical}}"
 					  Command="{Binding SetSortOptionCommand}"
-					  IsChecked="True"></MenuItem>
-
+					  CommandParameter="{x:Static db:SortMode.Lexical}"/>
 			<MenuItem Header="Sort by Size"
 					ToggleType="Radio"
 					GroupName="sortGroup"
+				      IsChecked="{Binding CurrentSortMode, 
+                                  Converter={StaticResource EnumToBoolConverter}, 
+                                  ConverterParameter={x:Static db:SortMode.SizeDescending}}"
 					Command="{Binding SetSortOptionCommand}"
-					/>
-		  </ContextMenu>
+					CommandParameter="{x:Static db:SortMode.SizeDescending}"/>
+		  </ContextMenu> 
         </TreeView.ContextMenu>
       </TreeView>
     </Border>

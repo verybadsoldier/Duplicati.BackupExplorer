@@ -6,8 +6,9 @@
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
   <Application.Resources>
     <local:MultiplyByHundredConverter x:Key="MultiplyByHundredConverter" />
+	  <local:EnumToBoolConverter x:Key="EnumToBoolConverter" />
     <local:FileSizeConverter x:Key="FileSizeConverter" />
-    <local:FileSizeSharedConverter x:Key="FileSizeSharedConverter" />
+	<local:FileSizeSharedConverter x:Key="FileSizeSharedConverter" />
     <local:ComparisonItemNameConverter x:Key="ComparisonItemNameConverter" />
 	<local:BackupListItemBackgroundConverter x:Key="BackupListItemBackgroundConverter" />
   </Application.Resources>

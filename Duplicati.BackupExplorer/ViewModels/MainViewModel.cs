@@ -149,8 +149,6 @@ public partial class MainViewModel : ViewModelBase
 
     public ObservableCollection<Backup> SelectedBackups { get; set; } = [];
 
-    public SortMode CurrentSortMode = SortMode.Lexical;
-
     public string LoadButtonLabel { get { return _loadButtonLabel; } set { _loadButtonLabel = value; OnPropertyChanged(nameof(LoadButtonLabel)); } }
 
     public bool ProgressVisible { get { return _progressVisible; } set { _progressVisible = value; OnPropertyChanged(nameof(ProgressVisible)); } }
@@ -206,6 +204,8 @@ public partial class MainViewModel : ViewModelBase
         // Apply current sorting
         FileTree.Sort(CurrentSortMode);
     }
+
+    public SortMode CurrentSortMode { get; set; } = SortMode.Lexical;
 
     public void SetProvider(IStorageProvider provider)
     {
