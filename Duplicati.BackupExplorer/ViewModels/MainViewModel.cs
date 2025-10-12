@@ -296,10 +296,7 @@ public partial class MainViewModel : ViewModelBase
             RightSide = ft;
         }
 
-        if (LeftSide != null && RightSide != null)
-        {
-            IsCompareElementsSelected = true;
-        }
+        IsCompareElementsSelected = (LeftSide != null && RightSide != null && LeftSide != RightSide);
     }
 
     async public Task CompareToAll(object? sender)
@@ -381,7 +378,7 @@ public partial class MainViewModel : ViewModelBase
         var dialog = new CompareResultWindow
         {
             Title = $"Comparison Result - {LeftSide.Name} <-> {RightSide.Name}",
-            DataContext = new CompareResultModel() { FileTree = LeftSide, RightSideName = RightSide.Name }
+            DataContext = new CompareResultModel() { FileTree = LeftSide, RightSideName = RightSide.Name, CurrentSortMode = CurrentSortMode }
         };
 
         LeftSide.Sort(CurrentSortMode);

@@ -45,92 +45,102 @@
     </Style>
   </Window.Styles>
 
-  <Grid ColumnDefinitions="Auto, Auto, *, *" RowDefinitions="30,45,30,*,45" Margin="10,10,10,5">
-    <Label Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
-    <Label Grid.Row="0" Grid.Column="1" FontWeight="DemiBold" Content="{Binding FileTree}"></Label>
-    <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
-    <Label Grid.Row="1" Grid.Column="1" FontWeight="DemiBold" Content="{Binding RightSideName}"></Label>
-    <ToggleButton Grid.Row="4" Grid.Column="0" ToolTip.Tip="Invert percentages to either show shared or disjunct portions" IsChecked="{Binding ShowDisjunct}" HorizontalAlignment="Left" Height="36" VerticalContentAlignment="Center" >
-      <Panel>
-        <Label Classes="shared">Showing Shared</Label>
-        <Label Classes="disjunct">Showing Disjunct</Label>
-      </Panel>
-    </ToggleButton>
-    <Label Grid.Row="2" FontSize="18">Comparison Result:</Label>
-    <Button Grid.Row="4" Grid.Column="3" Command="{Binding Close}" CommandParameter="{Binding $parent[Window]}" Background="Red" HorizontalAlignment="Right" VerticalContentAlignment="Center" Height="36">
-      Close
-    </Button>
-    <TreeView Grid.Row="3" Grid.ColumnSpan="3" ItemsSource="{Binding FileTree.Nodes}">
-		<TreeView.Styles>
-			<Style Selector="TreeViewItem">
-				<Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-		</Style>
-		</TreeView.Styles>
-		<TreeView.ItemTemplate>
-        <Binding Path="ShowDisjunct">
-          <Binding.Converter>
-            <views:CompareResultConverter>
-              <TreeDataTemplate x:Key="shared" ItemsSource="{Binding Children.Values}">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="{Binding Name}" Margin="0,2,5,2"/>
-                  <ProgressBar MinWidth="100" Height="18"  Foreground="Orange"
-                      Minimum="0" Maximum="100" Value="{Binding CompareResult.SharedPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
-                      ShowProgressText="True">
-                  </ProgressBar>
-                  <TextBlock Foreground="DarkGray" Margin="10,0,0,0">
-                    <TextBlock.Text>
-                      <MultiBinding Converter="{StaticResource FileSizeSharedConverter}">
-                        <Binding Path="CompareResult.SharedSize" />
-                        <Binding Path="CompareResult.LeftSize" />
-                      </MultiBinding>
-                    </TextBlock.Text>
-                  </TextBlock>
-                </StackPanel>
-              </TreeDataTemplate>
-              <TreeDataTemplate x:Key="disjunct" ItemsSource="{Binding Children.Values}">
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="{Binding Name}" Margin="0,15,15,0"/>
-                  <ProgressBar MinWidth="100" Height="20" Foreground="LightBlue"
-                      Minimum="0" Maximum="100" Value="{Binding CompareResult.DisjunctPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
-                      ShowProgressText="True">
-                  </ProgressBar>
+	<Grid ColumnDefinitions="Auto, Auto, *, *" RowDefinitions="30,45,30,*,45" Margin="10,10,10,5">
+		<Label Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right">Comparison Base:</Label>
+		<Label Grid.Row="0" Grid.Column="1" FontWeight="DemiBold" Content="{Binding FileTree}"></Label>
+		<Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right">Comparison Target:</Label>
+		<Label Grid.Row="1" Grid.Column="1" FontWeight="DemiBold" Content="{Binding RightSideName}"></Label>
+		
+		<ToggleButton Grid.Row="4" Grid.Column="0" ToolTip.Tip="Invert percentages to either show shared or disjunct portions" IsChecked="{Binding ShowDisjunct}" HorizontalAlignment="Left" Height="36" VerticalContentAlignment="Center" >
+			<Panel>
+				<Label Classes="shared">Showing Shared</Label>
+				<Label Classes="disjunct">Showing Disjunct</Label>
+			</Panel>
+		</ToggleButton>
+		<Label Grid.Row="2" FontSize="18">Comparison Result:</Label>
+		<Button Grid.Row="4" Grid.Column="3" Command="{Binding Close}" CommandParameter="{Binding $parent[Window]}" Background="Red" HorizontalAlignment="Right" VerticalContentAlignment="Center" Height="36">
+			Close
+		</Button>
+		<Border Grid.Row="3" Grid.ColumnSpan="4"
+				BorderBrush="#D0D0D0"
+				BorderThickness="1"
+				CornerRadius="4"
+				Background="White"
+				Margin="0,0,0,5">
+			<TreeView  ItemsSource="{Binding FileTree.Nodes}">
+			<TreeView.Styles>
+				<Style Selector="TreeViewItem">
+					<Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+				</Style>
+			</TreeView.Styles>
+			<TreeView.ItemTemplate>
+				<Binding Path="ShowDisjunct">
+					<Binding.Converter>
+						<views:CompareResultConverter>
+							<TreeDataTemplate x:Key="shared" ItemsSource="{Binding Children.Values}">
+								<StackPanel Orientation="Horizontal">
+									<Image Height="15" Margin="0,0, 5,0" RenderOptions.BitmapInterpolationMode="HighQuality" Source="{Binding IsFile, Converter={StaticResource FileTreeIconTypeConverter}}" />
+									<TextBlock Text="{Binding Name}" Margin="0,2,5,2"/>
+									<ProgressBar MinWidth="100" Height="18"  Foreground="Orange"
+										Minimum="0" Maximum="100" Value="{Binding CompareResult.SharedPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
+										ShowProgressText="True">
+									</ProgressBar>
+									<TextBlock Foreground="DarkGray" Margin="10,0,0,0">
+										<TextBlock.Text>
+											<MultiBinding Converter="{StaticResource FileSizeSharedConverter}">
+												<Binding Path="CompareResult.SharedSize" />
+												<Binding Path="CompareResult.LeftSize" />
+											</MultiBinding>
+										</TextBlock.Text>
+									</TextBlock>
+								</StackPanel>
+							</TreeDataTemplate>
+							<TreeDataTemplate x:Key="disjunct" ItemsSource="{Binding Children.Values}">
+								<StackPanel Orientation="Horizontal">
+									<Image Height="15" Margin="0,0, 5,0" RenderOptions.BitmapInterpolationMode="HighQuality" Source="{Binding IsFile, Converter={StaticResource FileTreeIconTypeConverter}}" />
+									<TextBlock Text="{Binding Name}" Margin="0,2,5,2"/>
+									<ProgressBar MinWidth="100" Height="20" Foreground="LightBlue"
+										Minimum="0" Maximum="100" Value="{Binding CompareResult.DisjunctPercentageSize, Converter={StaticResource MultiplyByHundredConverter}}"
+										ShowProgressText="True">
+									</ProgressBar>
 
-                  <TextBlock Foreground="DarkGray" Margin="15">
-                    <TextBlock.Text>
-                      <MultiBinding Converter="{StaticResource FileSizeSharedConverter}">
-                        <Binding Path="CompareResult.DisjunctSize" />
-                        <Binding Path="CompareResult.LeftSize" />
-                      </MultiBinding>
-                    </TextBlock.Text>
-                  </TextBlock>
+									<TextBlock Foreground="DarkGray" Margin="10,0,0,0">
+										<TextBlock.Text>
+											<MultiBinding Converter="{StaticResource FileSizeSharedConverter}">
+												<Binding Path="CompareResult.DisjunctSize" />
+												<Binding Path="CompareResult.LeftSize" />
+											</MultiBinding>
+										</TextBlock.Text>
+									</TextBlock>
 
-                </StackPanel>
-              </TreeDataTemplate>
-            </views:CompareResultConverter>
-          </Binding.Converter>
-        </Binding>
-      </TreeView.ItemTemplate>
-	  <TreeView.ContextMenu>
-	  	<ContextMenu>
-	  		<MenuItem Header="Sort by Name"
-	  				ToggleType="Radio"
-	  				GroupName="sortGroup"
-	  				Command="{Binding SetSortOptionCommand}"
-				      IsChecked="{Binding CurrentSortMode, 
+								</StackPanel>
+							</TreeDataTemplate>
+						</views:CompareResultConverter>
+					</Binding.Converter>
+				</Binding>
+			</TreeView.ItemTemplate>
+				<TreeView.ContextMenu>
+					<ContextMenu>
+						<MenuItem Header="Sort by Name"
+								ToggleType="Radio"
+								GroupName="sortGroup"
+								Command="{Binding SetSortOptionCommand}"
+								  IsChecked="{Binding CurrentSortMode, 
                                   Converter={StaticResource EnumToBoolConverter}, 
                                   ConverterParameter={x:Static db:SortMode.Lexical}}"
-					  CommandParameter="{x:Static vm:SortOptions.Alphabetical}"/>
-      
-	  		<MenuItem Header="Sort by Size"
-	  				ToggleType="Radio"
-	  				GroupName="sortGroup"
-					  				      IsChecked="{Binding CurrentSortMode, 
+								  CommandParameter="{x:Static vm:SortOptions.Alphabetical}"/>
+
+						<MenuItem Header="Sort by Size"
+								ToggleType="Radio"
+								GroupName="sortGroup"
+													  IsChecked="{Binding CurrentSortMode, 
                                   Converter={StaticResource EnumToBoolConverter}, 
                                   ConverterParameter={x:Static db:SortMode.SizeDescending}}"
-	  				Command="{Binding SetSortOptionCommand}"
-	  				CommandParameter="{x:Static vm:SortOptions.Size}"/>
-	  	</ContextMenu>
-	  </TreeView.ContextMenu>
-    </TreeView>
-  </Grid>
+								Command="{Binding SetSortOptionCommand}"
+								CommandParameter="{x:Static vm:SortOptions.Size}"/>
+					</ContextMenu>
+				</TreeView.ContextMenu>
+			</TreeView>
+			</Border>
+	</Grid>
 </Window>

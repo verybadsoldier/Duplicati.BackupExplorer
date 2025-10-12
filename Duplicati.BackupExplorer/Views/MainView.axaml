@@ -102,6 +102,7 @@
         <TreeView.ItemTemplate>
           <TreeDataTemplate ItemsSource="{Binding Children.Values}">
             <StackPanel Orientation="Horizontal">
+			  <Image Height="15" Margin="0, 0, 5,0" RenderOptions.BitmapInterpolationMode="HighQuality" Source="{Binding IsFile, Converter={StaticResource FileTreeIconTypeConverter}}" />
               <TextBlock Text="{Binding Name}"/>
               <TextBlock Foreground="LightGray" Text="{Binding NodeSize, Converter={StaticResource FileSizeConverter}}" Margin="10,0,0,0"/>
             </StackPanel>

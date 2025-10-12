@@ -3,16 +3,18 @@
              x:Class="Duplicati.BackupExplorer.App"
              xmlns:local="clr-namespace:Duplicati.BackupExplorer.Views"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
-  <Application.Resources>
-    <local:MultiplyByHundredConverter x:Key="MultiplyByHundredConverter" />
-	  <local:EnumToBoolConverter x:Key="EnumToBoolConverter" />
-    <local:FileSizeConverter x:Key="FileSizeConverter" />
-	<local:FileSizeSharedConverter x:Key="FileSizeSharedConverter" />
-    <local:ComparisonItemNameConverter x:Key="ComparisonItemNameConverter" />
-	<local:BackupListItemBackgroundConverter x:Key="BackupListItemBackgroundConverter" />
-  </Application.Resources>
-    <Application.Styles>
-        <FluentTheme />
-    </Application.Styles>
+	<!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+	<Application.Resources>
+		<local:MultiplyByHundredConverter x:Key="MultiplyByHundredConverter" />
+		<local:EnumToBoolConverter x:Key="EnumToBoolConverter" />
+		<local:FileSizeConverter x:Key="FileSizeConverter" />
+		<local:FileSizeSharedConverter x:Key="FileSizeSharedConverter" />
+		<local:ComparisonItemNameConverter x:Key="ComparisonItemNameConverter" />
+		<local:BackupListItemBackgroundConverter x:Key="BackupListItemBackgroundConverter" />
+		<local:FileTreeIconTypeConverter x:Key="FileTreeIconTypeConverter" />
+
+	</Application.Resources>
+	<Application.Styles>
+		<FluentTheme />
+	</Application.Styles>
 </Application>

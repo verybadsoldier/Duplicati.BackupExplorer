@@ -94,4 +94,5 @@ If you encounter any issues or have any questions, feel free to open an issue on
 
 - [Avalonia](https://avaloniaui.net/) for providing the cross-platform UI framework.
 - [Duplicati](https://www.duplicati.com/) for the backup solution that inspired this project.
-- [System UIcons](https://icon-icons.com/de/users/5PGZHjZSj9HEiyvBCqjy5/icon-sets/) for UI icons used in this application.
+- [System UIcons](https://icon-icons.com/de/users/5PGZHjZSj9HEiyvBCqjy5/icon-sets/) for many UI icons used in this application.
+- [mnauliady Stationary Icons](https://www.flaticon.com/packs/stationery-437) for the file and folder icons.
