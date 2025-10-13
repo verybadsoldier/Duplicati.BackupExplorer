@@ -419,6 +419,7 @@ public partial class MainViewModel : ViewModelBase
                     LoadButtonLabel = "Cancel";
                     ButtonSelectDatabaseColor = Brushes.Red;
                     Backups.Clear();
+                    FileTree = new FileTree(); // delete FileTRee from UI
 
                     IsLoadingDatabase = true;
                     ShowProgressBar(true);
