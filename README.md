@@ -1,6 +1,6 @@
 # Duplicati BackupExplorer
 
-Duplicati BackupExplorer is a .NET desktop application built with C# using Avalonia UI. The application allows users to load a Duplicati database `.sqlite` file and explore all backups contained within. Users can view the contents of backups, including directories and individual files, and compare different items to analyze data similarities.
+Duplicati BackupExplorer is a .NET desktop application built with C# using Avalonia UI. The application allows users to load a Duplicati database `.sqlite` file and explore all backups contained within. Users can view the contents of backups, including directories and individual files, and compare different items to analyze data overlap.
 
 Duplicati is a powerful backup tool, but it can be challenging to understand how its deduplication works and how much space each backup is actually consuming. Duplicati BackupExplorer solves this by providing a user-friendly interface to explore your backup databases, visualize data overlap, and see exactly what's new in each backup version.
 
@@ -35,7 +35,7 @@ Duplicati is a powerful backup tool, but it can be challenging to understand how
 3.  Navigate to your Duplicati database files.
     * **Windows:** `%USERPROFILE%\AppData\Local\Duplicati`
     * **Linux:** `~/.config/Duplicati`
-4.  Select one of the randomly named `.sqlite` files. Each of these files represents one of your Duplicati backup jobs. **Do not** select `Duplicati-server.sqlite`.
+4.  Select one of the randomly named `.sqlite` files. Each of these files represents one of your Duplicati backup jobs. **Do not** select `Duplicati-server.sqlite`, as it is an internal database and does not contain backup data.
 
 ### 2. Exploring Backups
 
@@ -50,7 +50,7 @@ Duplicati is a powerful backup tool, but it can be challenging to understand how
 The core feature of Duplicati BackupExplorer is its ability to compare two items to see how much data they share. An "item" can be an entire backup, a folder within a backup, or a single file. The comparison can only be performed after both comparison items have been selected. Otherwise the button Compare will not be available.
 
 1.  **Select the Base Item:** Right-click on the first item you want to compare and select **Select as Comparison Base**.
-2.  **Select the Target Item:** Right-click on the second item and select **Select as Comparison Target**.
+2.  **Select the Target Item:** Next, right-click on the second item and select **Select as Comparison Target**.
 3.  **Compare:** The **Compare** button will become active. Click it to open the comparison window.
 
 The comparison window shows you the content of the **base** item and what percentage of the data from the **base** item is also present in the **target** item. You can toggle to invert the percentag to show the amount of data **not** present in the **target** by clicking the **Showing Shared** / **Showing Disjunct** button.
@@ -63,8 +63,10 @@ This is an example of how a result window could look:
 
 What are we seeing here? This is the result of a comparison of the backup `2025-03-06 17:53` as **base** with backup `2025-03-23 16:32` as **target**. The file tree always shows the content of the **base**.
 
-The root node `/` shows information about the whole content, not specific to individual folder or directories. The whole base backup is 18.63 GB in size.80% of this data (which is 14.98 GB) in the base backup `2025-03-06 17:53` is also contained in the target backup `2025-03-23 16:32`.
+The root node `/` shows information about the whole content, not specific to individual folder or directories. The whole base backup is 18.63 GB in size. 80% of this data (which is 14.98 GB) in the base backup `2025-03-06 17:53` is also contained in the target backup `2025-03-23 16:32`.
+
 In the same way, there is this kind of information for all individual folders and files which are part of the base backup.
+
 When clicking the "Showing Shared" button, you get the same kind of information but inverted: it will be displayed how much of the base data is *not* included in the target.
 
 
