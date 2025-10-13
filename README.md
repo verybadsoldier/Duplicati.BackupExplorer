@@ -61,10 +61,11 @@ This is an example of how a result window could look:
 
 ![Comparison Example](docs/v0.9.0-compare_example.png)
 
-What are we seeing here? This is the result of the comparison with backup `2025-03-06 17:53` as **base** with backup `2025-03-23 16:32` as **target**. The file tree always shows the content of the **base**.
+What are we seeing here? This is the result of a comparison of the backup `2025-03-06 17:53` as **base** with backup `2025-03-23 16:32` as **target**. The file tree always shows the content of the **base**.
 
-The node root node `/` shows information about the whole content, not specific to individual folder or directories. The result here means that 80% of the data (which is 14.98 GB) in the base backup `2025-03-06 17:53` is also contained in the target backup `2025-03-23 16:32`.
+The root node `/` shows information about the whole content, not specific to individual folder or directories. The whole base backup is 18.63 GB in size.80% of this data (which is 14.98 GB) in the base backup `2025-03-06 17:53` is also contained in the target backup `2025-03-23 16:32`.
 In the same way, there is this kind of information for all individual folders and files which are part of the base backup.
+When clicking the "Showing Shared" button, you get the same kind of information but inverted: it will be displayed how much of the base data is *not* included in the target.
 
 
 ## Compiling
