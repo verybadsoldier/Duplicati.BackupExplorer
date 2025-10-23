@@ -20,7 +20,7 @@
         private List<File> _filesCache = [];
         private Dictionary<BlockID, Block> _blocksCache = [];
         private Dictionary<BlocksetID, HashSet<Block>> _blocksetCache = [];
-        private readonly HashSet<int> _supportedDatabaseVersions = [12, 13];
+        private readonly HashSet<int> _supportedDatabaseVersions = [12, 13, 17];
         private readonly HashSet<int> _unsupportedDatabaseVersions = [];
 
         public DuplicatiDatabase()
